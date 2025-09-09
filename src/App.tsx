@@ -126,11 +126,13 @@ function App() {
         : 'Generate 5 grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
       }
       
-      You must return a valid JSON array containing exactly 5 questions. Each question object must have:
-      - id: a unique identifier (string)
+      IMPORTANT: Return ONLY a valid JSON array. Do not include any explanatory text before or after the JSON. The response must start with [ and end with ].
+
+      Each question object must have exactly these fields:
+      - id: a unique identifier (string like "q1", "q2", etc.)
       - question: the question text in English for clarity
       - options: an array of exactly 4 answer choices
-      - correctAnswer: the exact text of the correct option (must match one of the options)
+      - correctAnswer: the exact text of the correct option (must match one of the options exactly)
       - explanation: detailed explanation of why this answer is correct
 
       Example format:
@@ -141,31 +143,63 @@ function App() {
           "options": ["Ivan", "Dmitri", "Alexander", "Mikhail"],
           "correctAnswer": "Ivan",
           "explanation": "The story clearly states that the main character is Ivan."
+        },
+        {
+          "id": "q2",
+          "question": "Where does the story take place?",
+          "options": ["Moscow", "St. Petersburg", "Novosibirsk", "Kazan"],
+          "correctAnswer": "Moscow",
+          "explanation": "The story mentions Moscow as the setting."
         }
       ]`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       
+      // Clean the response - remove any potential markdown formatting or extra text
+      let cleanResponse = response.trim()
+      
+      // Remove markdown code blocks if present
+      if (cleanResponse.startsWith('```json')) {
+        cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+      } else if (cleanResponse.startsWith('```')) {
+        cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '')
+      }
+      
+      // Remove any leading/trailing text that might not be JSON
+      const jsonStartIndex = cleanResponse.indexOf('[')
+      const jsonEndIndex = cleanResponse.lastIndexOf(']')
+      
+      if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
+        cleanResponse = cleanResponse.substring(jsonStartIndex, jsonEndIndex + 1)
+      }
+      
       let questionsData
       try {
-        questionsData = JSON.parse(response)
+        questionsData = JSON.parse(cleanResponse)
       } catch (parseError) {
         console.error('JSON parse error:', parseError)
-        console.error('Response:', response)
+        console.error('Original response:', response)
+        console.error('Cleaned response:', cleanResponse)
         throw new Error('Invalid JSON response from LLM')
       }
       
       // Validate the response is an array
       if (!Array.isArray(questionsData)) {
         console.error('Response is not an array:', questionsData)
+        console.error('Type of response:', typeof questionsData)
         throw new Error('Response is not in an array format')
       }
       
-      // Validate each question has required fields
-      const validQuestions = questionsData.filter(q => 
-        q.id && q.question && Array.isArray(q.options) && 
-        q.options.length === 4 && q.correctAnswer && q.explanation
-      )
+      // Validate each question has required fields and add type
+      const validQuestions = questionsData
+        .filter(q => 
+          q.id && q.question && Array.isArray(q.options) && 
+          q.options.length === 4 && q.correctAnswer && q.explanation
+        )
+        .map(q => ({
+          ...q,
+          type: type
+        }))
       
       if (validQuestions.length === 0) {
         throw new Error('No valid questions found in response')
