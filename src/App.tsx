@@ -118,40 +118,40 @@ function App() {
     try {
       const prompt = spark.llmPrompt`Based on this Russian story, generate ${type} questions:
 
-      Story: ${currentStory.content}
-      Level: ${currentStory.level}
-      
-      ${type === 'comprehension' 
-        ? 'Generate 5 comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
-        : 'Generate 5 grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
-      }
-      
-      IMPORTANT: Return ONLY a valid JSON array. Do not include any explanatory text before or after the JSON. The response must start with [ and end with ].
+Story: ${currentStory.content}
+Level: ${currentStory.level}
 
-      Each question object must have exactly these fields:
-      - id: a unique identifier (string like "q1", "q2", etc.)
-      - question: the question text in English for clarity
-      - options: an array of exactly 4 answer choices
-      - correctAnswer: the exact text of the correct option (must match one of the options exactly)
-      - explanation: detailed explanation of why this answer is correct
+${type === 'comprehension' 
+  ? 'Generate 5 comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
+  : 'Generate 5 grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
+}
 
-      Example format:
-      [
-        {
-          "id": "q1",
-          "question": "What is the main character's name?",
-          "options": ["Ivan", "Dmitri", "Alexander", "Mikhail"],
-          "correctAnswer": "Ivan",
-          "explanation": "The story clearly states that the main character is Ivan."
-        },
-        {
-          "id": "q2",
-          "question": "Where does the story take place?",
-          "options": ["Moscow", "St. Petersburg", "Novosibirsk", "Kazan"],
-          "correctAnswer": "Moscow",
-          "explanation": "The story mentions Moscow as the setting."
-        }
-      ]`
+IMPORTANT: Return ONLY a valid JSON array. Do not include any explanatory text before or after the JSON. The response must start with [ and end with ].
+
+Each question object must have exactly these fields:
+- id: a unique identifier (string like "q1", "q2", etc.)
+- question: the question text in English for clarity
+- options: an array of exactly 4 answer choices
+- correctAnswer: the exact text of the correct option (must match one of the options exactly)
+- explanation: detailed explanation of why this answer is correct
+
+Example format:
+[
+  {
+    "id": "q1",
+    "question": "What is the main character's name?",
+    "options": ["Ivan", "Dmitri", "Alexander", "Mikhail"],
+    "correctAnswer": "Ivan",
+    "explanation": "The story clearly states that the main character is Ivan."
+  },
+  {
+    "id": "q2",
+    "question": "Where does the story take place?",
+    "options": ["Moscow", "St. Petersburg", "Novosibirsk", "Kazan"],
+    "correctAnswer": "Moscow",
+    "explanation": "The story mentions Moscow as the setting."
+  }
+]`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       
