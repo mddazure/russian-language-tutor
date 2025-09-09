@@ -170,15 +170,18 @@ Return ONLY the JSON array, no other text:`
       const questionsData = JSON.parse(cleanResponse)
       console.log('Parsed questions data:', questionsData)
       
-      // Convert to our format without any validation
-      const processedQuestions = questionsData.map((q: any, index: number) => ({
-        id: q.id || `q${index + 1}`,
-        type: type,
-        question: q.question || 'Question not available',
-        options: q.options || ['Option A', 'Option B', 'Option C', 'Option D'],
-        correctAnswer: q.correctAnswer || q.options?.[0] || 'Option A',
-        explanation: q.explanation || 'Explanation not available'
-      }))
+      // Convert to our format - try multiple possible field names
+      const processedQuestions = questionsData.map((q: any, index: number) => {
+        console.log(`Processing question ${index}:`, q)
+        return {
+          id: q.id || q.ID || `q${index + 1}`,
+          type: type,
+          question: q.question || q.Question || q.text || q.questionText || `Question ${index + 1} not available`,
+          options: q.options || q.Options || q.choices || q.answers || ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: q.correctAnswer || q.CorrectAnswer || q.correct_answer || q.answer || (q.options && q.options[0]) || 'Option A',
+          explanation: q.explanation || q.Explanation || q.rationale || q.reason || 'Explanation not available'
+        }
+      })
       
       console.log('Processed questions:', processedQuestions)
       
