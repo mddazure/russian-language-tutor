@@ -60,6 +60,7 @@ function App() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
   const [userAnswers, setUserAnswers] = useKV<Record<string, string>>('user-answers', {})
+  const [debugOutput, setDebugOutput] = useState<string>('')
 
   const generateStory = async () => {
     if (!selectedTheme) {
@@ -137,6 +138,7 @@ Format your response as a JSON array only, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       console.log('Raw LLM Response:', response)
+      setDebugOutput(`Raw LLM Response:\n${response}\n\nPrompt used:\n${prompt}`)
       
       let questionsData
       
@@ -492,6 +494,29 @@ Format your response as a JSON array only, no other text:`
                   </div>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Debug Output */}
+        {debugOutput && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Debug Output</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setDebugOutput('')}
+                >
+                  Clear
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto max-h-96">
+                {debugOutput}
+              </pre>
             </CardContent>
           </Card>
         )}
