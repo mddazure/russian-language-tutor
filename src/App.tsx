@@ -116,94 +116,109 @@ function App() {
 
     setIsGenerating(true)
     try {
-      const prompt = spark.llmPrompt`Based on this Russian story, generate ${type} questions:
+      const prompt = spark.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
 
 Story: ${currentStory.content}
 Level: ${currentStory.level}
 
 ${type === 'comprehension' 
-  ? 'Generate 5 comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
-  : 'Generate 5 grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
+  ? 'Generate comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
+  : 'Generate grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
 }
 
-IMPORTANT: Return ONLY a valid JSON array. Do not include any explanatory text before or after the JSON. The response must start with [ and end with ].
+You must return a valid JSON array containing exactly 5 question objects. Each question must have:
+- id: unique string identifier
+- question: the question text in English
+- options: array of exactly 4 answer choices
+- correctAnswer: exact text matching one of the options
+- explanation: detailed explanation
 
-Each question object must have exactly these fields:
-- id: a unique identifier (string like "q1", "q2", etc.)
-- question: the question text in English for clarity
-- options: an array of exactly 4 answer choices
-- correctAnswer: the exact text of the correct option (must match one of the options exactly)
-- explanation: detailed explanation of why this answer is correct
-
-Example format:
-[
-  {
-    "id": "q1",
-    "question": "What is the main character's name?",
-    "options": ["Ivan", "Dmitri", "Alexander", "Mikhail"],
-    "correctAnswer": "Ivan",
-    "explanation": "The story clearly states that the main character is Ivan."
-  },
-  {
-    "id": "q2",
-    "question": "Where does the story take place?",
-    "options": ["Moscow", "St. Petersburg", "Novosibirsk", "Kazan"],
-    "correctAnswer": "Moscow",
-    "explanation": "The story mentions Moscow as the setting."
-  }
-]`
+Format your response as a JSON array only, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
-      
-      // Clean the response - remove any potential markdown formatting or extra text
-      let cleanResponse = response.trim()
-      
-      // Remove markdown code blocks if present
-      if (cleanResponse.startsWith('```json')) {
-        cleanResponse = cleanResponse.replace(/^```json\s*/, '').replace(/\s*```$/, '')
-      } else if (cleanResponse.startsWith('```')) {
-        cleanResponse = cleanResponse.replace(/^```\s*/, '').replace(/\s*```$/, '')
-      }
-      
-      // Remove any leading/trailing text that might not be JSON
-      const jsonStartIndex = cleanResponse.indexOf('[')
-      const jsonEndIndex = cleanResponse.lastIndexOf(']')
-      
-      if (jsonStartIndex !== -1 && jsonEndIndex !== -1 && jsonEndIndex > jsonStartIndex) {
-        cleanResponse = cleanResponse.substring(jsonStartIndex, jsonEndIndex + 1)
-      }
+      console.log('Raw LLM Response:', response)
       
       let questionsData
+      
       try {
-        questionsData = JSON.parse(cleanResponse)
-      } catch (parseError) {
-        console.error('JSON parse error:', parseError)
-        console.error('Original response:', response)
-        console.error('Cleaned response:', cleanResponse)
-        throw new Error('Invalid JSON response from LLM')
+        // First, try to parse the response directly as JSON
+        questionsData = JSON.parse(response)
+      } catch (firstParseError) {
+        console.log('Direct parse failed, trying to clean response...')
+        
+        // Clean the response by removing potential markdown or extra text
+        let cleanResponse = response.trim()
+        
+        // Remove markdown code blocks
+        cleanResponse = cleanResponse.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
+        
+        // Find JSON array boundaries
+        const arrayStart = cleanResponse.indexOf('[')
+        const arrayEnd = cleanResponse.lastIndexOf(']')
+        
+        if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+          cleanResponse = cleanResponse.substring(arrayStart, arrayEnd + 1)
+        }
+        
+        try {
+          questionsData = JSON.parse(cleanResponse)
+        } catch (secondParseError) {
+          console.error('Both parse attempts failed')
+          console.error('Original response:', response)
+          console.error('Cleaned response:', cleanResponse)
+          console.error('First error:', firstParseError)
+          console.error('Second error:', secondParseError)
+          throw new Error('Unable to parse LLM response as JSON')
+        }
       }
       
-      // Validate the response is an array
+      console.log('Parsed questions data:', questionsData)
+      
+      // Validate the response structure
+      if (!questionsData) {
+        throw new Error('No data received from LLM')
+      }
+      
       if (!Array.isArray(questionsData)) {
         console.error('Response is not an array:', questionsData)
-        console.error('Type of response:', typeof questionsData)
-        throw new Error('Response is not in an array format')
+        throw new Error('LLM response is not an array')
       }
       
-      // Validate each question has required fields and add type
+      if (questionsData.length === 0) {
+        throw new Error('LLM returned empty array')
+      }
+      
+      // Validate and process each question
       const validQuestions = questionsData
-        .filter(q => 
-          q.id && q.question && Array.isArray(q.options) && 
-          q.options.length === 4 && q.correctAnswer && q.explanation
-        )
-        .map(q => ({
-          ...q,
-          type: type
+        .filter((q, index) => {
+          const isValid = q && 
+            typeof q.id === 'string' && q.id.trim() !== '' &&
+            typeof q.question === 'string' && q.question.trim() !== '' &&
+            Array.isArray(q.options) && q.options.length === 4 &&
+            typeof q.correctAnswer === 'string' && q.correctAnswer.trim() !== '' &&
+            typeof q.explanation === 'string' && q.explanation.trim() !== '' &&
+            q.options.includes(q.correctAnswer)
+          
+          if (!isValid) {
+            console.warn(`Question ${index + 1} is invalid:`, q)
+          }
+          
+          return isValid
+        })
+        .map((q, index) => ({
+          id: q.id || `q${index + 1}`,
+          type: type,
+          question: q.question.trim(),
+          options: q.options.map((opt: string) => opt.trim()),
+          correctAnswer: q.correctAnswer.trim(),
+          explanation: q.explanation.trim()
         }))
       
       if (validQuestions.length === 0) {
-        throw new Error('No valid questions found in response')
+        throw new Error('No valid questions found in LLM response')
       }
+      
+      console.log('Valid questions:', validQuestions)
       
       setQuestions(validQuestions)
       setQuestionType(type)
@@ -213,9 +228,9 @@ Example format:
       
       toast.success(`Generated ${validQuestions.length} ${type} questions`)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+      console.error('Full error details:', error)
       toast.error(`Failed to generate ${type} questions: ${errorMessage}`)
-      console.error('Question generation error:', error)
     } finally {
       setIsGenerating(false)
     }
