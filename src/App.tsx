@@ -175,11 +175,11 @@ Return ONLY the JSON array, no other text:`
         console.log(`Processing question ${index}:`, q)
         console.log('Raw question object:', JSON.stringify(q, null, 2))
         
-        // Extract fields using exact field names from LLM output
-        const questionText = q.question
-        const options = q.options
-        const correctAnswer = q.correctAnswer
-        const explanation = q.explanation
+        // Extract fields - ensure we have fallbacks
+        const questionText = q.question || q.Question || 'Question not available'
+        const options = q.options || q.Options || ['Option A', 'Option B', 'Option C', 'Option D']
+        const correctAnswer = q.correctAnswer || q.CorrectAnswer || q.correct_answer || options[0]
+        const explanation = q.explanation || q.Explanation || 'No explanation available'
         
         console.log('Extracted fields:', {
           question: questionText,
@@ -431,7 +431,7 @@ Return ONLY the JSON array, no other text:`
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {questions[currentQuestionIndex] && (
+              {questions[currentQuestionIndex] && questions[currentQuestionIndex].question && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">
                     {questions[currentQuestionIndex].question}
@@ -487,6 +487,12 @@ Return ONLY the JSON array, no other text:`
                       </Button>
                     )}
                   </div>
+                </div>
+              )}
+              {questions[currentQuestionIndex] && !questions[currentQuestionIndex].question && (
+                <div className="p-4 bg-muted rounded-lg text-center">
+                  <p>Question data is missing or corrupted. Please regenerate the questions.</p>
+                  <pre className="mt-2 text-xs">{JSON.stringify(questions[currentQuestionIndex], null, 2)}</pre>
                 </div>
               )}
             </CardContent>
