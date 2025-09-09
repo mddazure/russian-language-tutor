@@ -154,52 +154,19 @@ Return ONLY the JSON array, no other text:`
       console.log('Raw LLM Response:', response)
       setDebugOutput(`Raw LLM Response:\n${response}\n\nPrompt used:\n${prompt}`)
       
-      let questionsData
-      
-      try {
-        // First, try to parse the response directly as JSON
-        questionsData = JSON.parse(response)
-      } catch (firstParseError) {
-        console.log('Direct parse failed, trying to clean response...')
-        
-        // Clean the response by removing potential markdown or extra text
-        let cleanResponse = response.trim()
-        
-        // Remove markdown code blocks
-        cleanResponse = cleanResponse.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '')
-        
-        // Find JSON array boundaries
-        const arrayStart = cleanResponse.indexOf('[')
-        const arrayEnd = cleanResponse.lastIndexOf(']')
-        
-        if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-          cleanResponse = cleanResponse.substring(arrayStart, arrayEnd + 1)
-        }
-        
-        try {
-          questionsData = JSON.parse(cleanResponse)
-        } catch (secondParseError) {
-          console.error('Both parse attempts failed')
-          console.error('Original response:', response)
-          console.error('Cleaned response:', cleanResponse)
-          console.error('First error:', firstParseError)
-          console.error('Second error:', secondParseError)
-          throw new Error('Unable to parse LLM response as JSON')
-        }
-      }
-      
+      // Parse the response and use it directly
+      const questionsData = JSON.parse(response)
       console.log('Parsed questions data:', questionsData)
       
-      // Minimal processing - just ensure it's an array and convert to our format
-      const processedQuestions = (Array.isArray(questionsData) ? questionsData : [])
-        .map((q, index) => ({
-          id: (q?.id || `q${index + 1}`).toString(),
-          type: type,
-          question: (q?.question || 'Question not available').toString(),
-          options: Array.isArray(q?.options) ? q.options.map((opt: any) => opt.toString()) : ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: (q?.correctAnswer || q?.options?.[0] || 'Option A').toString(),
-          explanation: (q?.explanation || 'Explanation not available').toString()
-        }))
+      // Convert to our format without any validation
+      const processedQuestions = questionsData.map((q: any, index: number) => ({
+        id: q.id || `q${index + 1}`,
+        type: type,
+        question: q.question || 'Question not available',
+        options: q.options || ['Option A', 'Option B', 'Option C', 'Option D'],
+        correctAnswer: q.correctAnswer || q.options?.[0] || 'Option A',
+        explanation: q.explanation || 'Explanation not available'
+      }))
       
       console.log('Processed questions:', processedQuestions)
       
