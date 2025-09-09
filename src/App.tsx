@@ -152,10 +152,22 @@ Return ONLY the JSON array, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       console.log('Raw LLM Response:', response)
-      setDebugOutput(`Raw LLM Response:\n${response}\n\nPrompt used:\n${prompt}`)
       
-      // Parse the response and use it directly
-      const questionsData = JSON.parse(response)
+      // Clean and extract JSON array from response
+      let cleanResponse = response.trim()
+      
+      // Try to find JSON array in the response
+      const arrayStart = cleanResponse.indexOf('[')
+      const arrayEnd = cleanResponse.lastIndexOf(']')
+      
+      if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
+        cleanResponse = cleanResponse.substring(arrayStart, arrayEnd + 1)
+      }
+      
+      console.log('Cleaned response:', cleanResponse)
+      
+      // Parse the response
+      const questionsData = JSON.parse(cleanResponse)
       console.log('Parsed questions data:', questionsData)
       
       // Convert to our format without any validation
@@ -171,7 +183,7 @@ Return ONLY the JSON array, no other text:`
       console.log('Processed questions:', processedQuestions)
       
       // Enhanced debug output
-      setDebugOutput(`Raw LLM Response:\n${response}\n\nParsed Data:\n${JSON.stringify(questionsData, null, 2)}\n\nProcessed Questions:\n${JSON.stringify(processedQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
+      setDebugOutput(`Raw LLM Response:\n${response}\n\nCleaned Response:\n${cleanResponse}\n\nParsed Data:\n${JSON.stringify(questionsData, null, 2)}\n\nProcessed Questions:\n${JSON.stringify(processedQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
       
       console.log('About to set questions state:', processedQuestions)
       console.log('Setting question type to:', type)
