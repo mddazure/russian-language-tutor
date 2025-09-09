@@ -173,14 +173,53 @@ Return ONLY the JSON array, no other text:`
       // Convert to our format - try multiple possible field names
       const processedQuestions = questionsData.map((q: any, index: number) => {
         console.log(`Processing question ${index}:`, q)
-        return {
+        console.log('Available question fields:', Object.keys(q))
+        
+        // Extract question text with extensive field name matching
+        let questionText = q.question || q.Question || q.text || q.questionText || q.prompt || q.query
+        
+        // If still no question found, try to get the first string value from the object
+        if (!questionText) {
+          for (const [key, value] of Object.entries(q)) {
+            if (typeof value === 'string' && value.length > 10 && value.includes('?')) {
+              questionText = value
+              console.log(`Found question text in field '${key}':`, questionText)
+              break
+            }
+          }
+        }
+        
+        // Extract options
+        let options = q.options || q.Options || q.choices || q.answers || q.alternatives
+        
+        // If no options found, try to find an array
+        if (!options || !Array.isArray(options)) {
+          for (const [key, value] of Object.entries(q)) {
+            if (Array.isArray(value) && value.length > 1) {
+              options = value
+              console.log(`Found options in field '${key}':`, options)
+              break
+            }
+          }
+        }
+        
+        // Extract correct answer
+        let correctAnswer = q.correctAnswer || q.CorrectAnswer || q.correct_answer || q.answer || q.solution
+        
+        // Extract explanation
+        let explanation = q.explanation || q.Explanation || q.rationale || q.reason || q.justification
+        
+        const processed = {
           id: q.id || q.ID || `q${index + 1}`,
           type: type,
-          question: q.question || q.Question || q.text || q.questionText || `Question ${index + 1} not available`,
-          options: q.options || q.Options || q.choices || q.answers || ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: q.correctAnswer || q.CorrectAnswer || q.correct_answer || q.answer || (q.options && q.options[0]) || 'Option A',
-          explanation: q.explanation || q.Explanation || q.rationale || q.reason || 'Explanation not available'
+          question: questionText || `Question ${index + 1} not available`,
+          options: options || ['Option A', 'Option B', 'Option C', 'Option D'],
+          correctAnswer: correctAnswer || (options && options[0]) || 'Option A',
+          explanation: explanation || 'Explanation not available'
         }
+        
+        console.log('Final processed question:', processed)
+        return processed
       })
       
       console.log('Processed questions:', processedQuestions)
