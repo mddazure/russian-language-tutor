@@ -127,14 +127,28 @@ ${type === 'comprehension'
   : 'Generate grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
 }
 
-You must return a valid JSON array containing exactly 5 question objects. Each question must have:
-- id: unique string identifier
-- question: the question text in English
-- options: array of exactly 4 answer choices
-- correctAnswer: exact text matching one of the options
-- explanation: detailed explanation
+IMPORTANT: Return only a valid JSON array with exactly 5 question objects. Each question object must have these exact fields:
 
-Format your response as a JSON array only, no other text:`
+{
+  "id": "unique string like q1, q2, etc",
+  "question": "the question text in English", 
+  "options": ["option A", "option B", "option C", "option D"],
+  "correctAnswer": "exact text that matches one of the options above",
+  "explanation": "detailed explanation of the correct answer"
+}
+
+Example format:
+[
+  {
+    "id": "q1",
+    "question": "What is the main character's name?",
+    "options": ["Ivan", "Peter", "Alexei", "Dmitri"],
+    "correctAnswer": "Ivan",
+    "explanation": "The story mentions Ivan as the protagonist in the first paragraph."
+  }
+]
+
+Return ONLY the JSON array, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       console.log('Raw LLM Response:', response)
@@ -192,27 +206,40 @@ Format your response as a JSON array only, no other text:`
       
       // Validate and process each question
       const validQuestions = questionsData
-        .filter((q, index) => {
-          const isValid = q && 
-            typeof q.id === 'string' && q.id.trim() !== '' &&
-            typeof q.question === 'string' && q.question.trim() !== '' &&
-            Array.isArray(q.options) && q.options.length === 4 &&
-            typeof q.correctAnswer === 'string' && q.correctAnswer.trim() !== '' &&
-            typeof q.explanation === 'string' && q.explanation.trim() !== '' &&
-            q.options.includes(q.correctAnswer)
+        .map((q, index) => {
+          // Detailed validation logging
+          console.log(`Validating question ${index + 1}:`, q)
           
-          if (!isValid) {
-            console.warn(`Question ${index + 1} is invalid:`, q)
+          const validationChecks = {
+            hasObject: !!q,
+            hasId: q && (typeof q.id === 'string' || typeof q.id === 'number'),
+            hasQuestion: q && typeof q.question === 'string' && q.question.trim() !== '',
+            hasOptions: q && Array.isArray(q.options),
+            hasCorrectOptions: q && Array.isArray(q.options) && q.options.length >= 3,
+            hasCorrectAnswer: q && typeof q.correctAnswer === 'string' && q.correctAnswer.trim() !== '',
+            hasExplanation: q && typeof q.explanation === 'string' && q.explanation.trim() !== '',
+            answerInOptions: q && Array.isArray(q.options) && typeof q.correctAnswer === 'string' && 
+              q.options.some(opt => opt.toString().trim() === q.correctAnswer.toString().trim())
           }
           
-          return isValid
+          console.log(`Question ${index + 1} validation:`, validationChecks)
+          
+          const isValid = Object.values(validationChecks).every(check => check)
+          
+          if (!isValid) {
+            console.warn(`Question ${index + 1} failed validation:`, validationChecks)
+            console.warn('Raw question data:', q)
+          }
+          
+          return isValid ? q : null
         })
+        .filter(q => q !== null)
         .map((q, index) => ({
-          id: q.id || `q${index + 1}`,
+          id: (q.id || `q${index + 1}`).toString(),
           type: type,
           question: q.question.trim(),
-          options: q.options.map((opt: string) => opt.trim()),
-          correctAnswer: q.correctAnswer.trim(),
+          options: q.options.map((opt: any) => opt.toString().trim()),
+          correctAnswer: q.correctAnswer.toString().trim(),
           explanation: q.explanation.trim()
         }))
       
@@ -221,6 +248,9 @@ Format your response as a JSON array only, no other text:`
       }
       
       console.log('Valid questions:', validQuestions)
+      
+      // Enhanced debug output
+      setDebugOutput(`Raw LLM Response:\n${response}\n\nParsed Data:\n${JSON.stringify(questionsData, null, 2)}\n\nValid Questions Found: ${validQuestions.length}\n\nProcessed Questions:\n${JSON.stringify(validQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
       
       setQuestions(validQuestions)
       setQuestionType(type)
