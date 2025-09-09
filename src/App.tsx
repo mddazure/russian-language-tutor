@@ -170,74 +170,26 @@ Return ONLY the JSON array, no other text:`
       const questionsData = JSON.parse(cleanResponse)
       console.log('Parsed questions data:', questionsData)
       
-      // Convert to our format - try multiple possible field names
+      // Convert to our format - use exact field names as specified
       const processedQuestions = questionsData.map((q: any, index: number) => {
         console.log(`Processing question ${index}:`, q)
         console.log('Raw question object:', JSON.stringify(q, null, 2))
         
-        // Extract question text with extensive field name matching
-        let questionText = q.question || q.Question || q.text || q.questionText || q.prompt || q.query
+        // Extract fields using exact field names
+        const questionText = q.question
+        const options = q.options
+        const correctAnswer = q.correctAnswer
+        const explanation = q.explanation
         
-        // If still no question found, look through all string fields
-        if (!questionText) {
-          const allKeys = Object.keys(q)
-          console.log('Searching through all keys for question:', allKeys)
-          
-          for (const key of allKeys) {
-            const value = q[key]
-            console.log(`Checking key '${key}' with value:`, value, 'type:', typeof value)
-            
-            if (typeof value === 'string' && value.length > 5) {
-              // Look for question-like patterns
-              if (value.includes('?') || value.toLowerCase().includes('what') || 
-                  value.toLowerCase().includes('how') || value.toLowerCase().includes('which') ||
-                  value.toLowerCase().includes('who') || value.toLowerCase().includes('when') ||
-                  value.toLowerCase().includes('where') || value.toLowerCase().includes('why')) {
-                questionText = value
-                console.log(`Found question text in field '${key}':`, questionText)
-                break
-              }
-            }
-          }
-        }
-        
-        // Extract options with more aggressive searching
-        let options = q.options || q.Options || q.choices || q.answers || q.alternatives
-        
-        if (!options || !Array.isArray(options)) {
-          const allKeys = Object.keys(q)
-          console.log('Searching for options array in keys:', allKeys)
-          
-          for (const key of allKeys) {
-            const value = q[key]
-            console.log(`Checking key '${key}' for options:`, value, 'is array:', Array.isArray(value))
-            
-            if (Array.isArray(value) && value.length >= 2) {
-              // Check if it looks like answer options
-              const hasStrings = value.every(item => typeof item === 'string')
-              if (hasStrings) {
-                options = value
-                console.log(`Found options in field '${key}':`, options)
-                break
-              }
-            }
-          }
-        }
-        
-        // Extract correct answer
-        let correctAnswer = q.correctAnswer || q.CorrectAnswer || q.correct_answer || q.answer || q.solution
-        
-        // Extract explanation
-        let explanation = q.explanation || q.Explanation || q.rationale || q.reason || q.justification
-        
-        // Final fallback - if no question text found, dump the entire object structure
-        if (!questionText) {
-          console.log('NO QUESTION TEXT FOUND! Full object structure:', q)
-          questionText = `Question structure: ${JSON.stringify(q, null, 2)}`
-        }
+        console.log('Extracted fields:', {
+          question: questionText,
+          options: options,
+          correctAnswer: correctAnswer,
+          explanation: explanation
+        })
         
         const processed = {
-          id: q.id || q.ID || `q${index + 1}`,
+          id: q.id || `q${index + 1}`,
           type: type,
           question: questionText || `Question ${index + 1} not available`,
           options: options || ['Option A', 'Option B', 'Option C', 'Option D'],
