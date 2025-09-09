@@ -175,7 +175,7 @@ Return ONLY the JSON array, no other text:`
         console.log(`Processing question ${index}:`, q)
         console.log('Raw question object:', JSON.stringify(q, null, 2))
         
-        // Extract fields using exact field names
+        // Extract fields using exact field names from LLM output
         const questionText = q.question
         const options = q.options
         const correctAnswer = q.correctAnswer
@@ -191,10 +191,10 @@ Return ONLY the JSON array, no other text:`
         const processed = {
           id: q.id || `q${index + 1}`,
           type: type,
-          question: questionText || `Question ${index + 1} not available`,
-          options: options || ['Option A', 'Option B', 'Option C', 'Option D'],
-          correctAnswer: correctAnswer || (options && options[0]) || 'Option A',
-          explanation: explanation || 'Explanation not available'
+          question: questionText,
+          options: options,
+          correctAnswer: correctAnswer,
+          explanation: explanation
         }
         
         console.log('Final processed question:', processed)
