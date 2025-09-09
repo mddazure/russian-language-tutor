@@ -210,28 +210,56 @@ Return ONLY the JSON array, no other text:`
           // Detailed validation logging
           console.log(`Validating question ${index + 1}:`, q)
           
-          const validationChecks = {
-            hasObject: !!q,
-            hasId: q && (typeof q.id === 'string' || typeof q.id === 'number'),
-            hasQuestion: q && typeof q.question === 'string' && q.question.trim() !== '',
-            hasOptions: q && Array.isArray(q.options),
-            hasCorrectOptions: q && Array.isArray(q.options) && q.options.length >= 3,
-            hasCorrectAnswer: q && typeof q.correctAnswer === 'string' && q.correctAnswer.trim() !== '',
-            hasExplanation: q && typeof q.explanation === 'string' && q.explanation.trim() !== '',
-            answerInOptions: q && Array.isArray(q.options) && typeof q.correctAnswer === 'string' && 
-              q.options.some(opt => opt.toString().trim() === q.correctAnswer.toString().trim())
+          // More lenient validation - let's see what we get
+          if (!q || typeof q !== 'object') {
+            console.warn(`Question ${index + 1}: Not an object`, q)
+            return null
           }
           
-          console.log(`Question ${index + 1} validation:`, validationChecks)
-          
-          const isValid = Object.values(validationChecks).every(check => check)
-          
-          if (!isValid) {
-            console.warn(`Question ${index + 1} failed validation:`, validationChecks)
-            console.warn('Raw question data:', q)
+          if (!q.question || typeof q.question !== 'string' || q.question.trim() === '') {
+            console.warn(`Question ${index + 1}: Invalid question text`, q.question)
+            return null
           }
           
-          return isValid ? q : null
+          if (!Array.isArray(q.options) || q.options.length < 2) {
+            console.warn(`Question ${index + 1}: Invalid options`, q.options)
+            return null
+          }
+          
+          if (!q.correctAnswer || typeof q.correctAnswer !== 'string' || q.correctAnswer.trim() === '') {
+            console.warn(`Question ${index + 1}: Invalid correct answer`, q.correctAnswer)
+            return null
+          }
+          
+          if (!q.explanation || typeof q.explanation !== 'string' || q.explanation.trim() === '') {
+            console.warn(`Question ${index + 1}: Invalid explanation`, q.explanation)
+            return null
+          }
+          
+          // More lenient answer matching - check if correct answer is similar to any option
+          const normalizedCorrectAnswer = q.correctAnswer.toString().trim().toLowerCase()
+          const normalizedOptions = q.options.map(opt => opt.toString().trim().toLowerCase())
+          const answerFound = normalizedOptions.some(opt => 
+            opt === normalizedCorrectAnswer || 
+            opt.includes(normalizedCorrectAnswer) || 
+            normalizedCorrectAnswer.includes(opt)
+          )
+          
+          if (!answerFound) {
+            console.warn(`Question ${index + 1}: Correct answer not found in options`)
+            console.warn('Correct answer:', normalizedCorrectAnswer)
+            console.warn('Options:', normalizedOptions)
+            // Don't reject - let's try to match it anyway
+          }
+          
+          console.log(`Question ${index + 1}: VALID`, {
+            question: q.question.substring(0, 50) + '...',
+            optionsCount: q.options.length,
+            hasCorrectAnswer: !!q.correctAnswer,
+            hasExplanation: !!q.explanation
+          })
+          
+          return q
         })
         .filter(q => q !== null)
         .map((q, index) => ({
@@ -252,11 +280,19 @@ Return ONLY the JSON array, no other text:`
       // Enhanced debug output
       setDebugOutput(`Raw LLM Response:\n${response}\n\nParsed Data:\n${JSON.stringify(questionsData, null, 2)}\n\nValid Questions Found: ${validQuestions.length}\n\nProcessed Questions:\n${JSON.stringify(validQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
       
+      console.log('About to set questions state:', validQuestions)
+      console.log('Setting question type to:', type)
+      
       setQuestions(validQuestions)
       setQuestionType(type)
       setCurrentQuestionIndex(0)
       setSelectedAnswer('')
       setShowFeedback(false)
+      
+      // Add a timeout to check state after it's been set
+      setTimeout(() => {
+        console.log('Questions state after setting:', validQuestions.length)
+      }, 100)
       
       toast.success(`Generated ${validQuestions.length} ${type} questions`)
     } catch (error) {
@@ -444,7 +480,15 @@ Return ONLY the JSON array, no other text:`
         )}
 
         {/* Questions */}
-        {questions.length > 0 && (
+        {(() => {
+          console.log('Rendering questions section:', {
+            questionsLength: questions.length,
+            questionType: questionType,
+            currentQuestionIndex: currentQuestionIndex,
+            currentQuestion: questions[currentQuestionIndex]
+          })
+          return questions.length > 0
+        })()} && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -469,7 +513,11 @@ Return ONLY the JSON array, no other text:`
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {questions[currentQuestionIndex] && (
+              {(() => {
+                const currentQuestion = questions[currentQuestionIndex]
+                console.log('Current question to display:', currentQuestion)
+                return currentQuestion
+              })()} && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">
                     {questions[currentQuestionIndex].question}
@@ -480,20 +528,23 @@ Return ONLY the JSON array, no other text:`
                     onValueChange={setSelectedAnswer}
                     disabled={showFeedback}
                   >
-                    {questions[currentQuestionIndex].options?.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <RadioGroupItem value={option} id={`option-${index}`} />
-                        <Label htmlFor={`option-${index}`} className="flex-1">
-                          {option}
-                        </Label>
-                        {showFeedback && option === questions[currentQuestionIndex].correctAnswer && (
-                          <CheckCircle className="w-4 h-4 text-green-600" />
-                        )}
-                        {showFeedback && option === selectedAnswer && option !== questions[currentQuestionIndex].correctAnswer && (
-                          <XCircle className="w-4 h-4 text-red-600" />
-                        )}
-                      </div>
-                    ))}
+                    {questions[currentQuestionIndex].options?.map((option, index) => {
+                      console.log(`Rendering option ${index}:`, option)
+                      return (
+                        <div key={index} className="flex items-center space-x-2">
+                          <RadioGroupItem value={option} id={`option-${index}`} />
+                          <Label htmlFor={`option-${index}`} className="flex-1">
+                            {option}
+                          </Label>
+                          {showFeedback && option === questions[currentQuestionIndex].correctAnswer && (
+                            <CheckCircle className="w-4 h-4 text-green-600" />
+                          )}
+                          {showFeedback && option === selectedAnswer && option !== questions[currentQuestionIndex].correctAnswer && (
+                            <XCircle className="w-4 h-4 text-red-600" />
+                          )}
+                        </div>
+                      )
+                    })}
                   </RadioGroup>
                   
                   {showFeedback && (
