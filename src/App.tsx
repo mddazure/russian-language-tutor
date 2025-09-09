@@ -480,15 +480,7 @@ Return ONLY the JSON array, no other text:`
         )}
 
         {/* Questions */}
-        {(() => {
-          console.log('Rendering questions section:', {
-            questionsLength: questions.length,
-            questionType: questionType,
-            currentQuestionIndex: currentQuestionIndex,
-            currentQuestion: questions[currentQuestionIndex]
-          })
-          return questions.length > 0
-        })()} && (
+        {questions.length > 0 && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -513,11 +505,7 @@ Return ONLY the JSON array, no other text:`
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {(() => {
-                const currentQuestion = questions[currentQuestionIndex]
-                console.log('Current question to display:', currentQuestion)
-                return currentQuestion
-              })()} && (
+              {questions[currentQuestionIndex] && (
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">
                     {questions[currentQuestionIndex].question}
