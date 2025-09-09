@@ -126,28 +126,62 @@ function App() {
         : 'Generate 5 grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
       }
       
-      Return as JSON array with this structure:
+      You must return a valid JSON array containing exactly 5 questions. Each question object must have:
+      - id: a unique identifier (string)
+      - question: the question text in English for clarity
+      - options: an array of exactly 4 answer choices
+      - correctAnswer: the exact text of the correct option (must match one of the options)
+      - explanation: detailed explanation of why this answer is correct
+
+      Example format:
       [
         {
-          "id": "unique_id",
-          "question": "Question in English for clarity",
-          "options": ["Option A", "Option B", "Option C", "Option D"],
-          "correctAnswer": "The correct option",
-          "explanation": "Detailed explanation of why this answer is correct"
+          "id": "q1",
+          "question": "What is the main character's name?",
+          "options": ["Ivan", "Dmitri", "Alexander", "Mikhail"],
+          "correctAnswer": "Ivan",
+          "explanation": "The story clearly states that the main character is Ivan."
         }
       ]`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
-      const questionsData = JSON.parse(response)
       
-      setQuestions(questionsData)
+      let questionsData
+      try {
+        questionsData = JSON.parse(response)
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError)
+        console.error('Response:', response)
+        throw new Error('Invalid JSON response from LLM')
+      }
+      
+      // Validate the response is an array
+      if (!Array.isArray(questionsData)) {
+        console.error('Response is not an array:', questionsData)
+        throw new Error('Response is not in an array format')
+      }
+      
+      // Validate each question has required fields
+      const validQuestions = questionsData.filter(q => 
+        q.id && q.question && Array.isArray(q.options) && 
+        q.options.length === 4 && q.correctAnswer && q.explanation
+      )
+      
+      if (validQuestions.length === 0) {
+        throw new Error('No valid questions found in response')
+      }
+      
+      setQuestions(validQuestions)
       setQuestionType(type)
       setCurrentQuestionIndex(0)
       setSelectedAnswer('')
       setShowFeedback(false)
+      
+      toast.success(`Generated ${validQuestions.length} ${type} questions`)
     } catch (error) {
-      toast.error('Failed to generate questions. Please try again.')
-      console.error(error)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      toast.error(`Failed to generate ${type} questions: ${errorMessage}`)
+      console.error('Question generation error:', error)
     } finally {
       setIsGenerating(false)
     }
