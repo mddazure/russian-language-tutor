@@ -127,48 +127,65 @@ ${type === 'comprehension'
   : 'Generate grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
 }
 
-IMPORTANT: Return only a valid JSON array with exactly 5 question objects. Each question object must have these exact fields:
+IMPORTANT: Return a JSON object with a single property called "questions" that contains an array of exactly 5 question objects. Each question object must have these exact fields:
 
 {
-  "id": "unique string like q1, q2, etc",
-  "question": "the question text in English", 
-  "options": ["option A", "option B", "option C", "option D"],
-  "correctAnswer": "exact text that matches one of the options above",
-  "explanation": "detailed explanation of the correct answer"
+  "questions": [
+    {
+      "id": "unique string like q1, q2, etc",
+      "question": "the question text in English", 
+      "options": ["option A", "option B", "option C", "option D"],
+      "correctAnswer": "exact text that matches one of the options above",
+      "explanation": "detailed explanation of the correct answer"
+    }
+  ]
 }
 
 Example format:
-[
-  {
-    "id": "q1",
-    "question": "What is the main character's name?",
-    "options": ["Ivan", "Peter", "Alexei", "Dmitri"],
-    "correctAnswer": "Ivan",
-    "explanation": "The story mentions Ivan as the protagonist in the first paragraph."
-  }
-]
+{
+  "questions": [
+    {
+      "id": "q1",
+      "question": "What is the main character's name?",
+      "options": ["Ivan", "Peter", "Alexei", "Dmitri"],
+      "correctAnswer": "Ivan",
+      "explanation": "The story mentions Ivan as the protagonist in the first paragraph."
+    }
+  ]
+}
 
-Return ONLY the JSON array, no other text:`
+Return ONLY the JSON object, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
       console.log('Raw LLM Response:', response)
       
-      // Clean and extract JSON array from response
-      let cleanResponse = response.trim()
+      // Parse the response directly since it's JSON mode
+      const parsedResponse = JSON.parse(response)
+      console.log('Parsed response:', parsedResponse)
       
-      // Try to find JSON array in the response
-      const arrayStart = cleanResponse.indexOf('[')
-      const arrayEnd = cleanResponse.lastIndexOf(']')
-      
-      if (arrayStart !== -1 && arrayEnd !== -1 && arrayEnd > arrayStart) {
-        cleanResponse = cleanResponse.substring(arrayStart, arrayEnd + 1)
+      // The response might be an object with a property containing the array
+      // or it might be a direct array
+      let questionsData
+      if (Array.isArray(parsedResponse)) {
+        questionsData = parsedResponse
+      } else if (parsedResponse.questions && Array.isArray(parsedResponse.questions)) {
+        questionsData = parsedResponse.questions
+      } else {
+        // Look for any property that contains an array
+        const arrayProperty = Object.values(parsedResponse).find(value => Array.isArray(value))
+        if (arrayProperty) {
+          questionsData = arrayProperty
+        } else {
+          throw new Error('No array found in response')
+        }
       }
       
-      console.log('Cleaned response:', cleanResponse)
+      console.log('Questions data:', questionsData)
       
-      // Parse the response
-      const questionsData = JSON.parse(cleanResponse)
-      console.log('Parsed questions data:', questionsData)
+      // Validate we have an array
+      if (!Array.isArray(questionsData)) {
+        throw new Error('Questions data is not an array')
+      }
       
       // Convert to our format - use exact field names as specified
       const processedQuestions = questionsData.map((q: any, index: number) => {
@@ -204,7 +221,7 @@ Return ONLY the JSON array, no other text:`
       console.log('Processed questions:', processedQuestions)
       
       // Enhanced debug output
-      setDebugOutput(`Raw LLM Response:\n${response}\n\nCleaned Response:\n${cleanResponse}\n\nParsed Data:\n${JSON.stringify(questionsData, null, 2)}\n\nProcessed Questions:\n${JSON.stringify(processedQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
+      setDebugOutput(`Raw LLM Response:\n${response}\n\nParsed Response:\n${JSON.stringify(parsedResponse, null, 2)}\n\nQuestions Data:\n${JSON.stringify(questionsData, null, 2)}\n\nProcessed Questions:\n${JSON.stringify(processedQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
       
       console.log('About to set questions state:', processedQuestions)
       console.log('Setting question type to:', type)
