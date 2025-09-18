@@ -498,7 +498,7 @@ Return ONLY the JSON object, no other text:`
                     ) : (
                       <Button 
                         onClick={nextQuestion}
-                        disabled={currentQuestionIndex >= questions.length - 1}
+                        disabled={false}
                       >
                         {currentQuestionIndex < questions.length - 1 ? 'Next Question' : 'Complete Quiz'}
                       </Button>
