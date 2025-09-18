@@ -274,6 +274,7 @@ Return ONLY the JSON object, no other text:`
       setShowFeedback(false)
     } else {
       toast.success('Quiz completed!')
+      resetQuiz()
     }
   }
 
