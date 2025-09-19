@@ -71,7 +71,7 @@ function App() {
   const [showFeedback, setShowFeedback] = useState(false)
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
   const [userAnswers, setUserAnswers] = useKV<Record<string, string>>('user-answers', {})
-  const [debugOutput, setDebugOutput] = useState<string>('')
+
   const [quizScore, setQuizScore] = useState<{correct: number, total: number}>({correct: 0, total: 0})
   const [showResults, setShowResults] = useState(false)
   const [quizResults, setQuizResults] = useKV<Array<{question: string, userAnswer: string, correctAnswer: string, isCorrect: boolean, explanation: string}>>('quiz-results', [])
@@ -239,8 +239,6 @@ Return ONLY the JSON object, no other text:`
       
       console.log('Processed questions:', processedQuestions)
       
-      // Enhanced debug output
-      setDebugOutput(`Raw LLM Response:\n${response}\n\nParsed Response:\n${JSON.stringify(parsedResponse, null, 2)}\n\nQuestions Data:\n${JSON.stringify(questionsData, null, 2)}\n\nProcessed Questions:\n${JSON.stringify(processedQuestions, null, 2)}\n\nPrompt used:\n${prompt}`)
       
       console.log('About to set questions state:', processedQuestions)
       console.log('Setting question type to:', type)
@@ -646,29 +644,6 @@ Return ONLY the JSON object, no other text:`
                   Review Questions
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Debug Output */}
-        {debugOutput && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Debug Output</CardTitle>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setDebugOutput('')}
-                >
-                  Clear
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <pre className="whitespace-pre-wrap text-sm bg-muted p-4 rounded-lg overflow-auto max-h-96">
-                {debugOutput}
-              </pre>
             </CardContent>
           </Card>
         )}
