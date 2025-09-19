@@ -10,12 +10,17 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
       pages: write
       id-token: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          # Persist the GITHUB_TOKEN so later steps can push commits
+          persist-credentials: true
+          # Fetch all history to ensure branch creation/rewrite works reliably
+          fetch-depth: 0
 
       - name: Determine VITE_BASE
         run: |
