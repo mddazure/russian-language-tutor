@@ -7,9 +7,20 @@ import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
-import { BookOpen, HelpCircle, Languages, RefreshCw, CheckCircle, XCircle } from '@phosphor-icons/react'
+import { BookOpen, Question, Translate, ArrowClockwise, CheckCircle, XCircle, Trophy, ChartBar } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { useKV } from '@github/spark/hooks'
+
+declare global {
+  interface Window {
+    spark: {
+      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
+      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>
+    }
+  }
+}
+
+const spark = window.spark
 
 interface Story {
   title: string
@@ -61,6 +72,9 @@ function App() {
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
   const [userAnswers, setUserAnswers] = useKV<Record<string, string>>('user-answers', {})
   const [debugOutput, setDebugOutput] = useState<string>('')
+  const [quizScore, setQuizScore] = useState<{correct: number, total: number}>({correct: 0, total: 0})
+  const [showResults, setShowResults] = useState(false)
+  const [quizResults, setQuizResults] = useKV<Array<{question: string, userAnswer: string, correctAnswer: string, isCorrect: boolean, explanation: string}>>('quiz-results', [])
 
   const generateStory = async () => {
     if (!selectedTheme) {
@@ -116,6 +130,11 @@ function App() {
     if (!currentStory) return
 
     setIsGenerating(true)
+    // Reset scoring and results when starting new quiz
+    setQuizScore({correct: 0, total: 0})
+    setQuizResults([])
+    setShowResults(false)
+    
     try {
       const prompt = spark.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
 
@@ -253,6 +272,24 @@ Return ONLY the JSON object, no other text:`
     const currentQuestion = questions[currentQuestionIndex]
     const isCorrect = selectedAnswer === currentQuestion.correctAnswer
     
+    // Update quiz results
+    setQuizResults(prev => {
+      const currentResults = prev || []
+      return [...currentResults, {
+        question: currentQuestion.question,
+        userAnswer: selectedAnswer,
+        correctAnswer: currentQuestion.correctAnswer,
+        isCorrect: isCorrect,
+        explanation: currentQuestion.explanation
+      }]
+    })
+    
+    // Update score
+    setQuizScore(prev => ({
+      correct: prev.correct + (isCorrect ? 1 : 0),
+      total: prev.total + 1
+    }))
+    
     setUserAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: selectedAnswer
@@ -273,8 +310,9 @@ Return ONLY the JSON object, no other text:`
       setSelectedAnswer('')
       setShowFeedback(false)
     } else {
+      // Quiz completed - show results
+      setShowResults(true)
       toast.success('Quiz completed!')
-      resetQuiz()
     }
   }
 
@@ -284,6 +322,8 @@ Return ONLY the JSON object, no other text:`
     setShowFeedback(false)
     setQuestions([])
     setQuestionType(null)
+    setShowResults(false)
+    setQuizScore({correct: 0, total: 0})
   }
 
   return (
@@ -292,7 +332,7 @@ Return ONLY the JSON object, no other text:`
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-3xl font-bold text-foreground flex items-center justify-center gap-2">
-            <Languages className="w-8 h-8 text-primary" />
+            <Translate className="w-8 h-8 text-primary" />
             Russian Language Tutor
           </h1>
           <p className="text-muted-foreground">
@@ -369,7 +409,7 @@ Return ONLY the JSON object, no other text:`
             >
               {isGenerating ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <ArrowClockwise className="w-4 h-4 mr-2 animate-spin" />
                   Generating Story...
                 </>
               ) : (
@@ -407,7 +447,7 @@ Return ONLY the JSON object, no other text:`
                   disabled={isGenerating}
                   variant="default"
                 >
-                  <HelpCircle className="w-4 h-4 mr-2" />
+                  <Question className="w-4 h-4 mr-2" />
                   Test Comprehension
                 </Button>
                 <Button 
@@ -415,7 +455,7 @@ Return ONLY the JSON object, no other text:`
                   disabled={isGenerating}
                   variant="outline"
                 >
-                  <Languages className="w-4 h-4 mr-2" />
+                  <Translate className="w-4 h-4 mr-2" />
                   Practice Grammar
                 </Button>
               </div>
@@ -424,20 +464,20 @@ Return ONLY the JSON object, no other text:`
         )}
 
         {/* Questions */}
-        {questions.length > 0 && (
+        {questions.length > 0 && !showResults && (
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
                   {questionType === 'comprehension' ? (
-                    <HelpCircle className="w-5 h-5" />
+                    <Question className="w-5 h-5" />
                   ) : (
-                    <Languages className="w-5 h-5" />
+                    <Translate className="w-5 h-5" />
                   )}
                   {questionType === 'comprehension' ? 'Comprehension Questions' : 'Grammar Practice'}
                 </CardTitle>
                 <Button variant="ghost" size="sm" onClick={resetQuiz}>
-                  <RefreshCw className="w-4 h-4" />
+                  <ArrowClockwise className="w-4 h-4" />
                 </Button>
               </div>
               <Progress 
@@ -513,6 +553,99 @@ Return ONLY the JSON object, no other text:`
                   <pre className="mt-2 text-xs">{JSON.stringify(questions[currentQuestionIndex], null, 2)}</pre>
                 </div>
               )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Quiz Results */}
+        {showResults && quizResults && quizResults.length > 0 && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-accent" />
+                  Quiz Results
+                </CardTitle>
+                <div className="flex items-center gap-2">
+                  <Badge variant={quizScore.correct / quizScore.total >= 0.8 ? "default" : quizScore.correct / quizScore.total >= 0.6 ? "secondary" : "destructive"}>
+                    {quizScore.correct}/{quizScore.total} ({Math.round((quizScore.correct / quizScore.total) * 100)}%)
+                  </Badge>
+                  <Button variant="outline" size="sm" onClick={resetQuiz}>
+                    <ArrowClockwise className="w-4 h-4 mr-2" />
+                    New Quiz
+                  </Button>
+                </div>
+              </div>
+              <CardDescription>
+                {quizScore.correct / quizScore.total >= 0.8 
+                  ? "Excellent work! You have a strong understanding of the material."
+                  : quizScore.correct / quizScore.total >= 0.6
+                  ? "Good job! You're making progress. Review the explanations below."
+                  : "Keep practicing! Review the explanations to improve your understanding."
+                }
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center gap-4 p-4 bg-muted rounded-lg">
+                <div className="flex items-center gap-2">
+                  <ChartBar className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Performance Breakdown</span>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4 text-green-600" />
+                    {quizScore.correct} Correct
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <XCircle className="w-4 h-4 text-red-600" />
+                    {quizScore.total - quizScore.correct} Incorrect
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h4 className="font-medium">Question Review:</h4>
+                {(quizResults || []).map((result, index) => (
+                  <div key={index} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex items-start gap-2">
+                      {result.isCorrect ? (
+                        <CheckCircle className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <p className="font-medium">{result.question}</p>
+                        <div className="text-sm space-y-1">
+                          <p>
+                            <span className="text-muted-foreground">Your answer:</span>{' '}
+                            <span className={result.isCorrect ? 'text-green-600' : 'text-red-600'}>
+                              {result.userAnswer}
+                            </span>
+                          </p>
+                          {!result.isCorrect && (
+                            <p>
+                              <span className="text-muted-foreground">Correct answer:</span>{' '}
+                              <span className="text-green-600">{result.correctAnswer}</span>
+                            </p>
+                          )}
+                          <p className="text-muted-foreground text-xs">
+                            {result.explanation}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={() => generateQuestions(questionType!)}>
+                  Try Again
+                </Button>
+                <Button variant="outline" onClick={() => setShowResults(false)}>
+                  Review Questions
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}
