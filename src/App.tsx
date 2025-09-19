@@ -97,7 +97,7 @@ const LEVELS = [
 ]
 
 const THEMES = [
-  'Daily Life', 'Travel', 'Food', 'Family', 'Work', 'Hobbies', 'Nature', 
+  'Daily Life', 'Travel', 'Food', 'Family', 'Work', 'Hobbies', 'Nature',
   'History', 'Culture', 'Technology', 'Sports', 'Art', 'Science'
 ]
 
@@ -120,9 +120,9 @@ function App() {
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
   const [userAnswers, setUserAnswers] = useKV<Record<string, string>>('user-answers', {})
 
-  const [quizScore, setQuizScore] = useState<{correct: number, total: number}>({correct: 0, total: 0})
+  const [quizScore, setQuizScore] = useState<{ correct: number, total: number }>({ correct: 0, total: 0 })
   const [showResults, setShowResults] = useState(false)
-  const [quizResults, setQuizResults] = useKV<Array<{question: string, userAnswer: string, correctAnswer: string, isCorrect: boolean, explanation: string}>>('quiz-results', [])
+  const [quizResults, setQuizResults] = useKV<Array<{ question: string, userAnswer: string, correctAnswer: string, isCorrect: boolean, explanation: string }>>('quiz-results', [])
 
   const generateStory = async () => {
     if (!selectedTheme) {
@@ -153,7 +153,7 @@ function App() {
       // Use the unified caller so we work in both Spark runtime and static pages.
       const response = await callLLM(prompt, 'gpt-4o', true)
       const storyData = JSON.parse(response)
-      
+
       const newStory: Story = {
         title: storyData.title,
         content: storyData.content,
@@ -161,7 +161,7 @@ function App() {
         theme: selectedTheme,
         length: selectedLength
       }
-      
+
       setCurrentStory(newStory)
       setQuestions([])
       setQuestionType(null)
@@ -180,20 +180,20 @@ function App() {
 
     setIsGenerating(true)
     // Reset scoring and results when starting new quiz
-    setQuizScore({correct: 0, total: 0})
+    setQuizScore({ correct: 0, total: 0 })
     setQuizResults([])
     setShowResults(false)
-    
+
     try {
       const prompt = spark.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
 
 Story: ${currentStory.content}
 Level: ${currentStory.level}
 
-${type === 'comprehension' 
-  ? 'Generate comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
-  : 'Generate grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
-}
+${type === 'comprehension'
+          ? 'Generate comprehension questions about the story content, characters, plot, and meaning. Questions should test understanding of what happened in the story.'
+          : 'Generate grammar questions focusing on specific grammar constructs used in this story. Identify grammar patterns, verb forms, case usage, etc. that appear in the text and create questions about them.'
+        }
 
 IMPORTANT: Return a JSON object with a single property called "questions" that contains an array of exactly 5 question objects. Each question object must have these exact fields:
 
@@ -226,13 +226,13 @@ Return ONLY the JSON object, no other text:`
 
       // Use the unified caller so we work in both Spark runtime and static pages.
       const response = await callLLM(prompt, 'gpt-4o', true)
-      
+
       // Parse the response directly since it's JSON mode
       const parsedResponse = JSON.parse(response)
-      
+
       // Extract questions from the response
       const questionsData = parsedResponse.questions || []
-      
+
       // Convert to our format
       const processedQuestions = questionsData.map((q: any, index: number) => ({
         id: q.id || `q${index + 1}`,
@@ -242,13 +242,13 @@ Return ONLY the JSON object, no other text:`
         correctAnswer: q.correctAnswer,
         explanation: q.explanation
       }))
-      
+
       setQuestions(processedQuestions)
       setQuestionType(type)
       setCurrentQuestionIndex(0)
       setSelectedAnswer('')
       setShowFeedback(false)
-      
+
       toast.success(`Generated ${processedQuestions.length} ${type} questions`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
@@ -264,7 +264,7 @@ Return ONLY the JSON object, no other text:`
 
     const currentQuestion = questions[currentQuestionIndex]
     const isCorrect = selectedAnswer === currentQuestion.correctAnswer
-    
+
     // Update quiz results
     setQuizResults(prev => {
       const currentResults = prev || []
@@ -276,20 +276,20 @@ Return ONLY the JSON object, no other text:`
         explanation: currentQuestion.explanation
       }]
     })
-    
+
     // Update score
     setQuizScore(prev => ({
       correct: prev.correct + (isCorrect ? 1 : 0),
       total: prev.total + 1
     }))
-    
+
     setUserAnswers(prev => ({
       ...prev,
       [currentQuestion.id]: selectedAnswer
     }))
-    
+
     setShowFeedback(true)
-    
+
     if (isCorrect) {
       toast.success('Correct!')
     } else {
@@ -316,7 +316,7 @@ Return ONLY the JSON object, no other text:`
     setQuestions([])
     setQuestionType(null)
     setShowResults(false)
-    setQuizScore({correct: 0, total: 0})
+    setQuizScore({ correct: 0, total: 0 })
   }
 
   return (
@@ -386,7 +386,7 @@ Return ONLY the JSON object, no other text:`
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Theme</Label>
                 <Select value={selectedTheme} onValueChange={setSelectedTheme}>
@@ -402,7 +402,7 @@ Return ONLY the JSON object, no other text:`
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label>Story Length</Label>
                 <Select value={selectedLength} onValueChange={setSelectedLength}>
@@ -419,9 +419,9 @@ Return ONLY the JSON object, no other text:`
                 </Select>
               </div>
             </div>
-            
-            <Button 
-              onClick={generateStory} 
+
+            <Button
+              onClick={generateStory}
               disabled={isGenerating || !selectedTheme}
               className="w-full"
             >
@@ -453,14 +453,14 @@ Return ONLY the JSON object, no other text:`
               </div>
             </CardHeader>
             <CardContent>
-              <Textarea 
+              <Textarea
                 value={currentStory.content}
                 readOnly
                 className="min-h-[300px] text-base leading-relaxed resize-none"
               />
-              
+
               <div className="flex gap-2 mt-4">
-                <Button 
+                <Button
                   onClick={() => generateQuestions('comprehension')}
                   disabled={isGenerating}
                   variant="default"
@@ -468,7 +468,7 @@ Return ONLY the JSON object, no other text:`
                   <Question className="w-4 h-4 mr-2" />
                   Test Comprehension
                 </Button>
-                <Button 
+                <Button
                   onClick={() => generateQuestions('grammar')}
                   disabled={isGenerating}
                   variant="outline"
@@ -498,8 +498,8 @@ Return ONLY the JSON object, no other text:`
                   <ArrowClockwise className="w-4 h-4" />
                 </Button>
               </div>
-              <Progress 
-                value={(currentQuestionIndex + 1) / questions.length * 100} 
+              <Progress
+                value={(currentQuestionIndex + 1) / questions.length * 100}
                 className="w-full"
               />
               <CardDescription>
@@ -512,9 +512,9 @@ Return ONLY the JSON object, no other text:`
                   <h3 className="text-lg font-medium">
                     {questions[currentQuestionIndex].question}
                   </h3>
-                  
-                  <RadioGroup 
-                    value={selectedAnswer} 
+
+                  <RadioGroup
+                    value={selectedAnswer}
                     onValueChange={setSelectedAnswer}
                     disabled={showFeedback}
                   >
@@ -533,7 +533,7 @@ Return ONLY the JSON object, no other text:`
                       </div>
                     ))}
                   </RadioGroup>
-                  
+
                   {showFeedback && (
                     <div className="p-4 bg-muted rounded-lg">
                       <h4 className="font-medium mb-2">Explanation:</h4>
@@ -542,17 +542,17 @@ Return ONLY the JSON object, no other text:`
                       </p>
                     </div>
                   )}
-                  
+
                   <div className="flex gap-2">
                     {!showFeedback ? (
-                      <Button 
+                      <Button
                         onClick={submitAnswer}
                         disabled={!selectedAnswer}
                       >
                         Submit Answer
                       </Button>
                     ) : (
-                      <Button 
+                      <Button
                         onClick={nextQuestion}
                         disabled={false}
                       >
@@ -586,11 +586,11 @@ Return ONLY the JSON object, no other text:`
                 </div>
               </div>
               <CardDescription>
-                {quizScore.correct / quizScore.total >= 0.8 
+                {quizScore.correct / quizScore.total >= 0.8
                   ? "Excellent work! You have a strong understanding of the material."
                   : quizScore.correct / quizScore.total >= 0.6
-                  ? "Good job! You're making progress. Review the explanations below."
-                  : "Keep practicing! Review the explanations to improve your understanding."
+                    ? "Good job! You're making progress. Review the explanations below."
+                    : "Keep practicing! Review the explanations to improve your understanding."
                 }
               </CardDescription>
             </CardHeader>
