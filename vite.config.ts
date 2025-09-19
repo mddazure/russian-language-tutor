@@ -22,4 +22,5 @@ export default defineConfig({
       '@': resolve(projectRoot, 'src')
     }
   },
+  base: '/russian-language-lea/',
 });
