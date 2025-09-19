@@ -22,6 +22,54 @@ declare global {
 
 const spark = window.spark
 
+// Fallback LLM caller: prefer the Spark runtime (window.spark.llm) but when
+// the app is deployed as a static site (GitHub Pages) there is no Spark
+// backend at /_spark/llm. In that case use a user-provided OpenAI API key
+// stored in localStorage under OPENAI_API_KEY. This avoids embedding secrets
+// in the repo while allowing the app to work as a static site for demo/testing.
+const callLLM = async (prompt: string, model = 'gpt-4o', jsonMode = false): Promise<string> => {
+  // If running inside the Spark runtime, delegate to it
+  if (typeof window !== 'undefined' && window.spark && typeof window.spark.llm === 'function') {
+    return await window.spark.llm(prompt, model, jsonMode)
+  }
+
+  // Otherwise use OpenAI (requires user to provide an API key in localStorage)
+  const apiKey = typeof localStorage !== 'undefined' ? localStorage.getItem('OPENAI_API_KEY') : null
+  if (!apiKey) {
+    throw new Error('No OpenAI API key found. Click "API Key" to provide one via the browser prompt.')
+  }
+
+  const body: any = {
+    model: model || 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are a helpful assistant.' },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 1,
+    max_tokens: 1000
+  }
+
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${apiKey}`
+    },
+    body: JSON.stringify(body)
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`LLM request failed: ${res.status} ${res.statusText} - ${text}`)
+  }
+
+  const json = await res.json()
+  // Expect the assistant reply in the standard OpenAI field
+  const content = json?.choices?.[0]?.message?.content
+  if (typeof content !== 'string') throw new Error('Malformed LLM response')
+  return content
+}
+
 interface Story {
   title: string
   content: string
@@ -102,7 +150,8 @@ function App() {
         "content": "Full story content in Russian"
       }`
 
-      const response = await spark.llm(prompt, 'gpt-4o', true)
+      // Use the unified caller so we work in both Spark runtime and static pages.
+      const response = await callLLM(prompt, 'gpt-4o', true)
       const storyData = JSON.parse(response)
       
       const newStory: Story = {
@@ -175,7 +224,8 @@ Example format:
 
 Return ONLY the JSON object, no other text:`
 
-      const response = await spark.llm(prompt, 'gpt-4o', true)
+      // Use the unified caller so we work in both Spark runtime and static pages.
+      const response = await callLLM(prompt, 'gpt-4o', true)
       
       // Parse the response directly since it's JSON mode
       const parsedResponse = JSON.parse(response)
@@ -278,6 +328,31 @@ Return ONLY the JSON object, no other text:`
             <Translate className="w-8 h-8 text-primary" />
             Russian Language Tutor
           </h1>
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const existing = typeof localStorage !== 'undefined' ? localStorage.getItem('OPENAI_API_KEY') : null
+                const value = window.prompt('Enter OpenAI API key (stored in browser localStorage). Leave empty to clear.', existing ? '*****' : '')
+                if (value === null) return
+                if (value === '') {
+                  localStorage.removeItem('OPENAI_API_KEY')
+                  toast.success('API key cleared')
+                } else {
+                  // If user pasted masked value '*****' keep existing
+                  if (value === '*****' && existing) {
+                    toast.info('Using existing API key')
+                  } else {
+                    localStorage.setItem('OPENAI_API_KEY', value)
+                    toast.success('API key saved to local storage')
+                  }
+                }
+              }}
+            >
+              API Key
+            </Button>
+          </div>
           <p className="text-muted-foreground">
             Generate personalized Russian stories and practice with interactive questions
           </p>
