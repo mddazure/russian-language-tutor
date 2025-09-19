@@ -176,83 +176,28 @@ Example format:
 Return ONLY the JSON object, no other text:`
 
       const response = await spark.llm(prompt, 'gpt-4o', true)
-      console.log('Raw LLM Response:', response)
       
       // Parse the response directly since it's JSON mode
       const parsedResponse = JSON.parse(response)
-      console.log('Parsed response:', parsedResponse)
       
-      // The response might be an object with a property containing the array
-      // or it might be a direct array
-      let questionsData
-      if (Array.isArray(parsedResponse)) {
-        questionsData = parsedResponse
-      } else if (parsedResponse.questions && Array.isArray(parsedResponse.questions)) {
-        questionsData = parsedResponse.questions
-      } else {
-        // Look for any property that contains an array
-        const arrayProperty = Object.values(parsedResponse).find(value => Array.isArray(value))
-        if (arrayProperty) {
-          questionsData = arrayProperty
-        } else {
-          throw new Error('No array found in response')
-        }
-      }
+      // Extract questions from the response
+      const questionsData = parsedResponse.questions || []
       
-      console.log('Questions data:', questionsData)
-      
-      // Validate we have an array
-      if (!Array.isArray(questionsData)) {
-        throw new Error('Questions data is not an array')
-      }
-      
-      // Convert to our format - use exact field names as specified
-      const processedQuestions = questionsData.map((q: any, index: number) => {
-        console.log(`Processing question ${index}:`, q)
-        console.log('Raw question object:', JSON.stringify(q, null, 2))
-        
-        // Extract fields - ensure we have fallbacks
-        const questionText = q.question || q.Question || 'Question not available'
-        const options = q.options || q.Options || ['Option A', 'Option B', 'Option C', 'Option D']
-        const correctAnswer = q.correctAnswer || q.CorrectAnswer || q.correct_answer || options[0]
-        const explanation = q.explanation || q.Explanation || 'No explanation available'
-        
-        console.log('Extracted fields:', {
-          question: questionText,
-          options: options,
-          correctAnswer: correctAnswer,
-          explanation: explanation
-        })
-        
-        const processed = {
-          id: q.id || `q${index + 1}`,
-          type: type,
-          question: questionText,
-          options: options,
-          correctAnswer: correctAnswer,
-          explanation: explanation
-        }
-        
-        console.log('Final processed question:', processed)
-        return processed
-      })
-      
-      console.log('Processed questions:', processedQuestions)
-      
-      
-      console.log('About to set questions state:', processedQuestions)
-      console.log('Setting question type to:', type)
+      // Convert to our format
+      const processedQuestions = questionsData.map((q: any, index: number) => ({
+        id: q.id || `q${index + 1}`,
+        type: type,
+        question: q.question,
+        options: q.options,
+        correctAnswer: q.correctAnswer,
+        explanation: q.explanation
+      }))
       
       setQuestions(processedQuestions)
       setQuestionType(type)
       setCurrentQuestionIndex(0)
       setSelectedAnswer('')
       setShowFeedback(false)
-      
-      // Add a timeout to check state after it's been set
-      setTimeout(() => {
-        console.log('Questions state after setting:', processedQuestions.length)
-      }, 100)
       
       toast.success(`Generated ${processedQuestions.length} ${type} questions`)
     } catch (error) {
@@ -498,23 +443,20 @@ Return ONLY the JSON object, no other text:`
                     onValueChange={setSelectedAnswer}
                     disabled={showFeedback}
                   >
-                    {questions[currentQuestionIndex].options?.map((option, index) => {
-                      console.log(`Rendering option ${index}:`, option)
-                      return (
-                        <div key={index} className="flex items-center space-x-2">
-                          <RadioGroupItem value={option} id={`option-${index}`} />
-                          <Label htmlFor={`option-${index}`} className="flex-1">
-                            {option}
-                          </Label>
-                          {showFeedback && option === questions[currentQuestionIndex].correctAnswer && (
-                            <CheckCircle className="w-4 h-4 text-green-600" />
-                          )}
-                          {showFeedback && option === selectedAnswer && option !== questions[currentQuestionIndex].correctAnswer && (
-                            <XCircle className="w-4 h-4 text-red-600" />
-                          )}
-                        </div>
-                      )
-                    })}
+                    {questions[currentQuestionIndex].options?.map((option, index) => (
+                      <div key={index} className="flex items-center space-x-2">
+                        <RadioGroupItem value={option} id={`option-${index}`} />
+                        <Label htmlFor={`option-${index}`} className="flex-1">
+                          {option}
+                        </Label>
+                        {showFeedback && option === questions[currentQuestionIndex].correctAnswer && (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        )}
+                        {showFeedback && option === selectedAnswer && option !== questions[currentQuestionIndex].correctAnswer && (
+                          <XCircle className="w-4 h-4 text-red-600" />
+                        )}
+                      </div>
+                    ))}
                   </RadioGroup>
                   
                   {showFeedback && (
@@ -543,12 +485,6 @@ Return ONLY the JSON object, no other text:`
                       </Button>
                     )}
                   </div>
-                </div>
-              )}
-              {questions[currentQuestionIndex] && !questions[currentQuestionIndex].question && (
-                <div className="p-4 bg-muted rounded-lg text-center">
-                  <p>Question data is missing or corrupted. Please regenerate the questions.</p>
-                  <pre className="mt-2 text-xs">{JSON.stringify(questions[currentQuestionIndex], null, 2)}</pre>
                 </div>
               )}
             </CardContent>
