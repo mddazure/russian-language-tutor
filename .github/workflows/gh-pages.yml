@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Persist the GITHUB_TOKEN so later steps can push commits
+          persist-credentials: true
+          # Fetch all history to ensure branch creation/rewrite works reliably
+          fetch-depth: 0
+
+      - name: Determine VITE_BASE
+        run: |
+          # Extract repo name (owner/repo -> repo)
+          REPO_NAME="${GITHUB_REPOSITORY#*/}"
+          echo "Repository name: $REPO_NAME"
+          # If this is a user/org GitHub Pages repo (owner.github.io) use root base, otherwise use /repo/
+          if [[ "$REPO_NAME" == *.github.io ]]; then
+            echo "VITE_BASE=/" >> $GITHUB_ENV
+          else
+            echo "VITE_BASE=/$REPO_NAME/" >> $GITHUB_ENV
+          fi
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          allow_empty_commit: true

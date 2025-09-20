@@ -1,43 +1,23 @@
-# Russian Language Tutor
+# ✨ Welcome to Your Spark Template!
+You've just launched your brand-new Spark Template Codespace — everything’s fired up and ready for you to explore, build, and create with Spark!
 
-A personalized Russian language learning application that generates custom stories and interactive quizzes.
+This template is your blank canvas. It comes with a minimal setup to help you get started quickly with Spark development.
 
-## Features
+🚀 What's Inside?
+- A clean, minimal Spark environment
+- Pre-configured for local development
+- Ready to scale with your ideas
+  
+🧠 What Can You Do?
 
-- **Story Generation**: Generate Russian stories tailored to your CEFR level (A1-C2) on various themes
-- **Interactive Quizzes**: Test comprehension and practice grammar with multiple-choice questions
-- **Progress Tracking**: View detailed quiz results and performance analytics
-- **Adaptive Learning**: Content adapts to your proficiency level
+Right now, this is just a starting point — the perfect place to begin building and testing your Spark applications.
 
-## Live Demo
+🧹 Just Exploring?
+No problem! If you were just checking things out and don’t need to keep this code:
 
-Visit the live application: [Russian Language Tutor](https://mddazure.github.io/russian-language-lea/)
+- Simply delete your Spark.
+- Everything will be cleaned up — no traces left behind.
 
-## How to Use
+📄 License For Spark Template Resources 
 
-1. **Select Your Level**: Choose your Russian proficiency level (A1-C2)
-2. **Pick a Theme**: Select from topics like Daily Life, Travel, Food, Culture, etc.
-3. **Choose Story Length**: Short, medium, or long stories
-4. **Generate Story**: Get a personalized Russian story
-5. **Practice**: Take comprehension or grammar quizzes based on the story
-6. **Review Results**: See your score and detailed explanations
-
-## Technologies Used
-
-- React 19 with TypeScript
-- Tailwind CSS for styling
-- shadcn/ui components
-- OpenAI GPT-4 for content generation
-- GitHub Spark platform
-
-## Development
-
-This application is built on the GitHub Spark platform, which provides AI-powered content generation and persistent storage capabilities.
-
-## Contributing
-
-This is an educational project. Feel free to fork and modify for your own language learning needs.
-
-## License
-
-MIT License - see LICENSE file for details.
+The Spark Template files and resources from GitHub are licensed under the terms of the MIT license, Copyright GitHub, Inc.
