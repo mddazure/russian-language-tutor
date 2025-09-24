@@ -1,27 +1,8 @@
 {
     "name": "russian-language-tutor",
-    "private": false,
+    "private": true,
     "version": "1.0.0",
     "type": "module",
-    "description": "An intelligent Russian language learning application that generates personalized stories and interactive exercises using AI",
-    "keywords": [
-        "russian",
-        "language",
-        "learning",
-        "ai",
-        "education",
-        "stories",
-        "grammar",
-        "comprehension"
-    ],
-    "homepage": "https://github.com/your-username/russian-language-tutor",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/your-username/russian-language-tutor.git"
-    },
-    "bugs": {
-        "url": "https://github.com/your-username/russian-language-tutor/issues"
-    },
     "scripts": {
         "dev": "vite",
         "kill": "fuser -k 5000/tcp",
@@ -30,7 +11,6 @@
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
-        "deploy": "npm run build && gh-pages -d dist",
         "deploy:azure": "npm run build:azure && cd api && npm install"
     },
     "dependencies": {
@@ -107,7 +87,6 @@
         "eslint": "^9.28.0",
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.4.19",
-        "gh-pages": "^6.3.0",
         "globals": "^16.0.0",
         "tailwindcss": "^4.1.11",
         "typescript": "~5.7.2",
