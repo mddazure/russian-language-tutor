@@ -1,0 +1,12 @@
+{
+  "name": "russian-tutor-api",
+  "version": "1.0.0",
+  "description": "Azure Functions API for Russian Language Tutor",
+  "main": "llm.js",
+  "dependencies": {
+    "openai": "^4.20.0"
+  },
+  "devDependencies": {
+    "@azure/functions": "^3.0.0"
+  }
+}

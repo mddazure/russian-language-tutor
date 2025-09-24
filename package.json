@@ -7,9 +7,11 @@
         "dev": "vite",
         "kill": "fuser -k 5000/tcp",
         "build": "tsc -b --noCheck && vite build",
+        "build:azure": "npm run build && cp web.config dist/",
         "lint": "eslint .",
         "optimize": "vite optimize",
-        "preview": "vite preview"
+        "preview": "vite preview",
+        "deploy:azure": "npm run build:azure && cd api && npm install"
     },
     "dependencies": {
         "@github/spark": "^0.39.0",
@@ -59,6 +61,7 @@
         "marked": "^15.0.7",
         "next-themes": "^0.4.6",
         "octokit": "^4.1.2",
+        "openai": "^5.23.0",
         "react": "^19.0.0",
         "react-day-picker": "^9.6.7",
         "react-dom": "^19.0.0",

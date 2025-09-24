@@ -9,18 +9,20 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { BookOpen, Question, Translate, ArrowClockwise, CheckCircle, XCircle, Trophy, ChartBar } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { useKV } from '@github/spark/hooks'
+import { llmService } from './services/llm'
+import { useStorage } from './services/storage'
+import { isAzureEnvironment } from './config'
 
-declare global {
-  interface Window {
-    spark: {
-      llmPrompt: (strings: TemplateStringsArray, ...values: any[]) => string
-      llm: (prompt: string, modelName?: string, jsonMode?: boolean) => Promise<string>
-    }
+// Try to import useKV for Spark environment, fallback to useStorage for Azure
+let useKV: any
+try {
+  if (!isAzureEnvironment()) {
+    const sparkHooks = require('@github/spark/hooks')
+    useKV = sparkHooks.useKV
   }
+} catch {
+  // useKV not available, will use useStorage instead
 }
-
-const spark = window.spark
 
 interface Story {
   title: string
@@ -60,7 +62,10 @@ const LENGTHS = [
 ]
 
 function App() {
-  const [currentStory, setCurrentStory] = useKV<Story | null>('current-story', null)
+  // Use appropriate storage hook based on environment
+  const useStorageHook = useKV || useStorage
+  
+  const [currentStory, setCurrentStory] = useStorageHook('current-story', null)
   const [selectedLevel, setSelectedLevel] = useState('B1')
   const [selectedTheme, setSelectedTheme] = useState('')
   const [selectedLength, setSelectedLength] = useState('medium')
@@ -70,11 +75,11 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [showFeedback, setShowFeedback] = useState(false)
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
-  const [userAnswers, setUserAnswers] = useKV<Record<string, string>>('user-answers', {})
+  const [userAnswers, setUserAnswers] = useStorageHook('user-answers', {})
 
   const [quizScore, setQuizScore] = useState<{correct: number, total: number}>({correct: 0, total: 0})
   const [showResults, setShowResults] = useState(false)
-  const [quizResults, setQuizResults] = useKV<Array<{question: string, userAnswer: string, correctAnswer: string, isCorrect: boolean, explanation: string}>>('quiz-results', [])
+  const [quizResults, setQuizResults] = useStorageHook('quiz-results', [])
 
   const generateStory = async () => {
     if (!selectedTheme) {
@@ -84,7 +89,7 @@ function App() {
 
     setIsGenerating(true)
     try {
-      const prompt = spark.llmPrompt`Generate a Russian short story with the following specifications:
+      const prompt = llmService.llmPrompt`Generate a Russian short story with the following specifications:
       - Theme: ${selectedTheme}
       - CEFR Level: ${selectedLevel}
       - Length: ${selectedLength}
@@ -102,7 +107,7 @@ function App() {
         "content": "Full story content in Russian"
       }`
 
-      const response = await spark.llm(prompt, 'gpt-4o', true)
+      const response = await llmService.llm(prompt, 'gpt-4o', true)
       const storyData = JSON.parse(response)
       
       const newStory: Story = {
@@ -136,7 +141,7 @@ function App() {
     setShowResults(false)
     
     try {
-      const prompt = spark.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
+      const prompt = llmService.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
 
 Story: ${currentStory.content}
 Level: ${currentStory.level}
@@ -175,7 +180,7 @@ Example format:
 
 Return ONLY the JSON object, no other text:`
 
-      const response = await spark.llm(prompt, 'gpt-4o', true)
+      const response = await llmService.llm(prompt, 'gpt-4o', true)
       
       // Parse the response directly since it's JSON mode
       const parsedResponse = JSON.parse(response)
