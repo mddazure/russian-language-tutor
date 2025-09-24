@@ -25,10 +25,16 @@ dist-ssr
 *.sw?
 
 .env
+.env.local
+.env.production
 **/agent-eval-report*
 packages
 pids
 .file-manifest
 .devcontainer/
+.deployment/
+runtime.config.json
+spark.meta.json
 
 .spark-workbench-id
+.spark-initial-sha
