@@ -1,111 +1,143 @@
-# Russian Language Tutor
+# Russian Language Tutor 🇷🇺
 
-An intelligent Russian language learning application that generates personalized stories and interactive exercises using AI.
+An intelligent Russian language learning application that generates personalized stories and interactive exercises using AI. Perfect for learners at any level from beginner (A1) to proficient (C2).
 
-## Features
+🌐 **[Try it now!](https://your-username.github.io/russian-language-tutor)**
 
-- **AI-Generated Stories**: Creates Russian stories tailored to your CEFR level (A1-C2)
-- **Comprehension Questions**: Tests your understanding of story content
-- **Grammar Practice**: Interactive exercises focusing on grammar constructs from the stories
-- **Progress Tracking**: Detailed quiz results with explanations
-- **Dual Deployment**: Works both as a GitHub Spark and Azure Web App
+## ✨ Features
 
-## Deployment Options
+- **🤖 AI-Generated Stories**: Creates engaging Russian stories tailored to your CEFR level (A1-C2)
+- **📚 Multiple Themes**: Choose from 13 different themes including daily life, travel, culture, and more
+- **📝 Comprehension Questions**: Test your understanding with multiple-choice questions about story content
+- **📖 Grammar Practice**: Interactive exercises focusing on specific grammar constructs from the stories
+- **📊 Progress Tracking**: Detailed quiz results with explanations and performance analytics
+- **🎯 Adaptive Learning**: Content automatically adjusts to your proficiency level
+- **💾 Persistent Data**: Your progress and preferences are automatically saved
 
-### Option 1: GitHub Spark (Recommended for Development)
+## 🚀 Getting Started
 
-This application works out-of-the-box in the GitHub Spark environment with built-in LLM capabilities.
+### For Learners
 
-1. The app automatically uses GitHub Spark's LLM service
-2. Data is persisted using Spark's key-value storage
-3. No additional configuration required
+Simply visit the [live application](https://your-username.github.io/russian-language-tutor) and start learning! No installation required.
 
-### Option 2: Azure Web App with Azure OpenAI
+1. **Select Your Level**: Choose your CEFR level (A1-C2)
+2. **Pick a Theme**: Select from topics like family, travel, culture, etc.
+3. **Generate Story**: Get a personalized Russian story
+4. **Practice**: Take comprehension and grammar quizzes
+5. **Track Progress**: Review your results and improve
 
-For production deployment, you can deploy this as an Azure Web App with Azure OpenAI integration.
+### For Developers
 
-#### Quick Setup
-
-1. **Prerequisites**:
-   - Azure subscription
-   - Azure OpenAI resource with GPT-4o deployment
-   - Azure CLI installed
-
-2. **Environment Setup**:
-   Create a `.env` file with your Azure OpenAI credentials:
-   ```env
-   VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
-   VITE_AZURE_OPENAI_API_KEY=your-api-key-here
-   VITE_AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
-   VITE_AZURE_OPENAI_API_VERSION=2024-02-15-preview
-   VITE_API_BASE_URL=/api
-   ```
-
-3. **Deploy**:
-   ```bash
-   npm run build:azure
-   ```
-
-For detailed Azure deployment instructions, see [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
-
-## Development
-
-### Local Development (Spark Environment)
+Want to run this locally or contribute? Here's how:
 
 ```bash
+# Clone the repository
+git clone https://github.com/your-username/russian-language-tutor.git
+cd russian-language-tutor
+
+# Install dependencies
 npm install
+
+# Start development server
 npm run dev
 ```
 
-The application will automatically detect the Spark environment and use the built-in LLM services.
+## 🎓 Learning Levels Supported
 
-### Local Development (Azure Mode)
+- **A1 (Beginner)**: Basic vocabulary and simple sentence structures
+- **A2 (Elementary)**: Everyday expressions and frequent vocabulary
+- **B1 (Intermediate)**: Clear standard language on familiar topics
+- **B2 (Upper Intermediate)**: Complex text and abstract topics
+- **C1 (Advanced)**: Wide range of demanding texts
+- **C2 (Proficient)**: Virtually everything read or heard
 
-To test Azure OpenAI integration locally:
+## 🎯 Available Themes
 
-1. Set up Azure Function Core Tools
-2. Configure environment variables
-3. Start the API:
-   ```bash
-   cd api
-   func start
-   ```
-4. Start the frontend:
-   ```bash
-   npm run dev
-   ```
+- Daily Life
+- Travel & Tourism
+- Food & Cuisine
+- Family & Relationships
+- Work & Career
+- Hobbies & Leisure
+- Nature & Environment
+- Russian History
+- Russian Culture
+- Technology
+- Sports
+- Art & Literature
+- Science
 
-## Architecture
+## 🛠️ Technology Stack
 
-### Spark Mode
-- Uses `window.spark.llm()` for AI generation
-- Uses `useKV()` hook for data persistence
-- No backend API required
-
-### Azure Mode
-- Uses Azure OpenAI API via Azure Functions
-- Uses localStorage for data persistence
-- Requires separate API deployment
-
-The application automatically detects the environment and switches between modes seamlessly.
-
-## Technology Stack
-
-- **Frontend**: React, TypeScript, Tailwind CSS
-- **UI Components**: shadcn/ui
+- **Frontend**: React 19, TypeScript, Tailwind CSS
+- **UI Components**: shadcn/ui v4
 - **Icons**: Phosphor Icons
 - **Notifications**: Sonner
-- **Backend (Azure)**: Azure Functions, Azure OpenAI
-- **Storage**: GitHub Spark KV / localStorage
+- **AI Integration**: GitHub Spark LLM / Azure OpenAI
+- **Storage**: Persistent key-value storage
 
-## Contributing
+## 📱 Progressive Web App
+
+This application works great on all devices:
+- 💻 Desktop computers
+- 📱 Mobile phones
+- 📟 Tablets
+- Works offline for previously generated content
+
+## 🌍 Deployment Options
+
+### GitHub Pages (Recommended)
+The easiest way to deploy your own instance:
+
+1. Fork this repository
+2. Enable GitHub Pages in repository settings
+3. The app will automatically deploy to `https://your-username.github.io/russian-language-tutor`
+
+### Azure Web App
+For advanced users who want to use Azure OpenAI:
+
+1. Set up Azure OpenAI resource
+2. Configure environment variables
+3. Deploy using the provided Azure configuration
+
+See [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md) for detailed instructions.
+
+## 🤝 Contributing
+
+We welcome contributions from the community! Here's how you can help:
+
+1. **Report Bugs**: Found an issue? Open a GitHub issue
+2. **Suggest Features**: Have ideas for improvement? We'd love to hear them
+3. **Submit PRs**: Fix bugs or add features with pull requests
+4. **Improve Translations**: Help make the interface more user-friendly
+
+### Development Guidelines
 
 1. Fork the repository
-2. Create a feature branch
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
 3. Make your changes
-4. Test in both Spark and Azure environments
-5. Submit a pull request
+4. Test thoroughly (both functionality and UI)
+5. Commit with clear messages (`git commit -m 'Add amazing feature'`)
+6. Push to your branch (`git push origin feature/amazing-feature`)
+7. Open a Pull Request
 
-## License
+## 📄 License
 
-MIT License - see LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Built with [GitHub Spark](https://github.com/features/spark) for AI integration
+- UI components from [shadcn/ui](https://ui.shadcn.com/)
+- Icons from [Phosphor Icons](https://phosphoricons.com/)
+- Inspired by the needs of Russian language learners worldwide
+
+## 📞 Support
+
+- 🐛 **Bug Reports**: [Open an issue](https://github.com/your-username/russian-language-tutor/issues)
+- 💡 **Feature Requests**: [Start a discussion](https://github.com/your-username/russian-language-tutor/discussions)
+- 📧 **General Questions**: Use GitHub Discussions
+
+---
+
+**Happy Learning! Удачи в изучении русского языка! 🎉**
