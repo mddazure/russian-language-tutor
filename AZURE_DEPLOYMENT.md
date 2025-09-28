@@ -200,6 +200,16 @@ npm run dev
 2. **API key errors**: Verify environment variables are set correctly
 3. **Model not found**: Ensure the deployment name matches your Azure OpenAI model deployment
 4. **Build errors**: Check that all dependencies are installed
+5. **Web App not displaying**: See [AZURE_TROUBLESHOOTING.md](./AZURE_TROUBLESHOOTING.md) for detailed solutions
+
+### Web App Display Issues
+
+If the Azure Web App shows a blank page or doesn't load properly:
+
+1. Ensure you're using the correct build command: `npm run build:azure`
+2. Verify `web.config` is present in the deployment
+3. Check that static assets are being served correctly
+4. Review the detailed troubleshooting guide: [AZURE_TROUBLESHOOTING.md](./AZURE_TROUBLESHOOTING.md)
 
 ### Monitoring
 

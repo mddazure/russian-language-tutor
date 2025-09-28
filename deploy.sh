@@ -9,14 +9,13 @@ echo "Starting deployment..."
 echo "Installing dependencies..."
 npm ci
 
-# Build the application
+# Build the application for Azure
 echo "Building application..."
-npm run build
+npm run build:azure
 
-# Copy build files to wwwroot
+# Copy build files to wwwroot (dist already contains web.config)
 echo "Copying files..."
 cp -r dist/* $DEPLOYMENT_TARGET/
-cp web.config $DEPLOYMENT_TARGET/
 
 # Install API dependencies
 echo "Installing API dependencies..."
