@@ -8,7 +8,6 @@
         "kill": "fuser -k 5000/tcp",
         "build": "tsc -b --noCheck && vite build",
         "build:azure": "npm run build && cp web.config dist/",
-        "validate:azure": "node validate-azure-build.js",
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
