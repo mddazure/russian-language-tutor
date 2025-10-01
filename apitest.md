@@ -8,15 +8,21 @@ The Russian Language Tutor application uses Azure OpenAI API for generating Russ
 
 ## API Endpoints
 
-### Base URL
-- **Local Development**: `http://localhost:5173/api`
-- **Production**: `https://your-domain.com/api`
+### Base URLs
+- **Local Development**: `http://localhost:7071/api` (Azure Functions local)
+- **Azure Function App**: `https://russian-tutor-api.azurewebsites.net/api`
+
+**Important**: The base URL `/api` will return 404. This is normal for Azure Functions. Only specific function endpoints respond.
 
 ### Available Endpoints
 
 #### 1. LLM Generation Endpoint
 
 **Endpoint**: `POST /llm`
+
+**Full URLs**:
+- Local: `http://localhost:7071/api/llm`
+- Azure: `https://russian-tutor-api.azurewebsites.net/api/llm`
 
 **Description**: Generates Russian stories and practice questions using Azure OpenAI
 
@@ -49,8 +55,12 @@ Create a new environment in Postman with the following variables:
 
 | Variable | Initial Value | Current Value |
 |----------|---------------|---------------|
-| `baseUrl` | `http://localhost:5173/api` | `http://localhost:5173/api` |
+| `baseUrl` | `http://localhost:7071/api` | `https://russian-tutor-api.azurewebsites.net/api` |
 | `modelName` | `gpt-4o` | `gpt-4o` |
+
+**Note**: Change `baseUrl` to match your deployment:
+- For local testing: `http://localhost:7071/api`
+- For Azure testing: `https://russian-tutor-api.azurewebsites.net/api`
 
 ### Test Cases
 

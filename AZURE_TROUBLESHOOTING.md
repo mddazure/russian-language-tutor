@@ -47,6 +47,66 @@ After deployment, the Azure Web App root should contain:
       └── (API files)
 ```
 
+### Issue: API Base URL Returns 404
+
+**Symptoms:**
+- `https://your-function-app.azurewebsites.net/api` returns 404
+- Base API URL doesn't respond
+
+**Explanation:**
+This is normal Azure Functions behavior. Azure Functions only respond to specific function endpoints, not the base `/api` path.
+
+**Solutions:**
+1. **Use the specific function endpoint:**
+   - Instead of: `https://russian-tutor-api.azurewebsites.net/api`
+   - Use: `https://russian-tutor-api.azurewebsites.net/api/llm`
+
+2. **Test the correct endpoint:**
+   ```bash
+   # This will return 404 (expected)
+   curl https://russian-tutor-api.azurewebsites.net/api
+   
+   # This will return 405 Method Not Allowed (correct - function exists)
+   curl https://russian-tutor-api.azurewebsites.net/api/llm
+   
+   # This will work (POST request)
+   curl -X POST https://russian-tutor-api.azurewebsites.net/api/llm \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "Hello", "modelName": "gpt-4o"}'
+   ```
+
+3. **Verify Function App Structure:**
+   Your Function App should have this structure:
+   ```
+   /
+   ├── host.json
+   ├── package.json
+   └── llm/
+       ├── index.js (main function code)
+       └── function.json (function configuration)
+   ```
+
+### Issue: Function App Deployment Structure
+
+**Problem:**
+The api folder structure doesn't match Azure Functions requirements.
+
+**Solution:**
+Use the deployment script or manually restructure:
+
+```bash
+# Create proper structure
+mkdir -p functions-deploy/llm
+cp api/llm.js functions-deploy/llm/index.js  
+cp api/function.json functions-deploy/llm/function.json
+cp host.json functions-deploy/
+cp api/package.json functions-deploy/
+
+# Deploy from functions-deploy directory
+cd functions-deploy
+func azure functionapp publish russian-tutor-api --javascript
+```
+
 ### Issue: API Endpoints Not Working
 
 **Solution:**

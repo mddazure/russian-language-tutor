@@ -116,12 +116,37 @@ az webapp config appsettings set \
 
 ### Deploy Function App (API)
 
+The Function App needs the correct structure for Azure deployment. The issue is that Azure Functions expects the function to be in a named directory, not directly in the api folder.
+
 ```bash
-# Build and deploy functions
-cd api
+# Create proper Azure Functions structure
+mkdir -p functions-deploy/llm
+cp api/llm.js functions-deploy/llm/index.js  
+cp api/function.json functions-deploy/llm/function.json
+cp host.json functions-deploy/
+cp api/package.json functions-deploy/
+
+# Navigate to deployment directory and install dependencies
+cd functions-deploy
 npm install
-func azure functionapp publish russian-tutor-api
+
+# Deploy to Azure Function App
+func azure functionapp publish russian-tutor-api --javascript
+
+# Alternative: Deploy using zip deployment
+zip -r api-deploy.zip .
+az functionapp deployment source config-zip \
+  --resource-group russian-tutor-rg \
+  --name russian-tutor-api \
+  --src api-deploy.zip
+
+cd ..
 ```
+
+**Important**: The Function App API will be available at:
+- `https://russian-tutor-api.azurewebsites.net/api/llm` (not the base URL)
+
+The base URL `https://russian-tutor-api.azurewebsites.net/api` will return a 404 because there's no function at the root level.
 
 ### Deploy Web App (Frontend)
 
@@ -151,8 +176,75 @@ az functionapp cors add \
 ## Step 5: Test the Deployment
 
 1. Navigate to `https://russian-tutor-app.azurewebsites.net`
-2. Generate a story to test the integration
-3. Try the comprehension and grammar questions
+2. Test the API endpoint directly:
+   - GET request to `https://russian-tutor-api.azurewebsites.net/api/llm` should return 405 (Method Not Allowed)
+   - POST request to `https://russian-tutor-api.azurewebsites.net/api/llm` with JSON body should work
+3. Generate a story in the web app to test the full integration
+4. Try the comprehension and grammar questions
+
+### API Endpoint Testing
+
+The API has only one endpoint: `/api/llm`
+
+**Correct API URLs:**
+- Function App base: `https://russian-tutor-api.azurewebsites.net`
+- LLM endpoint: `https://russian-tutor-api.azurewebsites.net/api/llm`
+
+## Deployment Verification Steps
+
+After deploying both the Function App and Web App, verify the deployment:
+
+### 1. Verify Function App Structure
+```bash
+# Check if the function is deployed correctly
+az functionapp function show \
+  --resource-group russian-tutor-rg \
+  --name russian-tutor-api \
+  --function-name llm
+```
+
+### 2. Test Function App Endpoints
+```bash
+# This should return 404 (expected - no function at root)
+curl https://russian-tutor-api.azurewebsites.net/api
+
+# This should return 405 Method Not Allowed (function exists but wrong method)
+curl https://russian-tutor-api.azurewebsites.net/api/llm
+
+# This should work (POST with proper body)
+curl -X POST https://russian-tutor-api.azurewebsites.net/api/llm \
+  -H "Content-Type: application/json" \
+  -d '{"prompt": "Hello world", "modelName": "gpt-4o"}'
+```
+
+### 3. Check Function App Logs
+```bash
+# Stream logs to monitor function execution
+az functionapp log tail \
+  --resource-group russian-tutor-rg \
+  --name russian-tutor-api
+```
+
+### 4. Verify Web App Configuration
+```bash
+# Check that environment variables are set
+az webapp config appsettings list \
+  --resource-group russian-tutor-rg \
+  --name russian-tutor-app \
+  --query "[?name=='VITE_API_BASE_URL']"
+```
+
+The `VITE_API_BASE_URL` should be set to: `https://russian-tutor-api.azurewebsites.net/api`
+
+## Why the Base URL Returns 404
+
+**This is normal Azure Functions behavior**. Azure Functions creates routes like:
+- `https://your-app.azurewebsites.net/api/{function-name}`
+
+There is no function at the root `/api` path, so it returns 404. Your functions are available at:
+- `https://russian-tutor-api.azurewebsites.net/api/llm`
+
+The application is configured to call the correct endpoint (`/api/llm`), not the base URL.
 
 ## Environment Variables Reference
 
