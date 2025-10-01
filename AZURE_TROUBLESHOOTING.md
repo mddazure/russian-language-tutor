@@ -107,6 +107,37 @@ cd functions-deploy
 func azure functionapp publish russian-tutor-api --javascript
 ```
 
+### Issue: API Returns 500 Error
+
+**Symptoms:**
+- LLM API endpoint returns 500 Internal Server Error
+- Error message: "Internal server error"
+
+**Most Common Cause:**
+Missing Azure OpenAI environment variables in Function App configuration.
+
+**Solution:**
+1. **Set Required Environment Variables in Azure Function App:**
+   - Go to Azure Portal → Your Function App → Configuration → Application settings
+   - Add these variables:
+     ```
+     AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
+     AZURE_OPENAI_API_KEY=[your-32-character-key]
+     AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
+     AZURE_OPENAI_API_VERSION=2024-02-15-preview
+     ```
+
+2. **Restart Function App** after adding environment variables
+
+3. **Test the API** with proper error handling:
+   ```bash
+   curl -X POST https://russian-tutor-api.azurewebsites.net/api/llm \
+     -H "Content-Type: application/json" \
+     -d '{"prompt": "test"}'
+   ```
+
+4. **Check Function App logs** for specific error messages
+
 ### Issue: API Endpoints Not Working
 
 **Solution:**
