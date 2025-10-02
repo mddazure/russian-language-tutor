@@ -1,3 +1,7 @@
 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
 
-git remote set-url origin https://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@github.com/mddazure/russian-language-tutor.gitrussian-language-tutor
+git remote set-url origin https://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@github.com/mddazure/russian-language-tutor.git
+
+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
+
+git remote set-url origin https://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@github.com/mddazure/russian-language-tutor.git
