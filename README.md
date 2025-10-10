@@ -8,7 +8,7 @@ An intelligent Russian language learning application that generates personalized
 - **Comprehension Questions**: Tests your understanding of story content
 - **Grammar Practice**: Interactive exercises focusing on grammar constructs from the stories
 - **Progress Tracking**: Detailed quiz results with explanations
-- **Dual Deployment**: Works both as a GitHub Spark and Azure Web App
+- **Dual Deployment**: Works both as a GitHub Spark and self-contained Azure Web App
 
 ## Deployment Options
 
@@ -20,9 +20,9 @@ This application works out-of-the-box in the GitHub Spark environment with built
 2. Data is persisted using Spark's key-value storage
 3. No additional configuration required
 
-### Option 2: Azure Web App with Azure OpenAI
+### Option 2: Self-Contained Azure Web App
 
-For production deployment, you can deploy this as an Azure Web App with Azure OpenAI integration.
+**New Simplified Architecture**: Deploy as a single Azure Web App that directly calls Azure OpenAI (no Function App required).
 
 #### Quick Setup
 
@@ -31,22 +31,25 @@ For production deployment, you can deploy this as an Azure Web App with Azure Op
    - Azure OpenAI resource with GPT-4o deployment
    - Azure CLI installed
 
-2. **Environment Setup**:
+2. **One-Command Deployment**:
+   ```bash
+   # Make script executable and deploy
+   chmod +x deploy-azure-simplified.sh
+   ./deploy-azure-simplified.sh
+   ```
+
+3. **Manual Environment Setup** (alternative):
    Create a `.env` file with your Azure OpenAI credentials:
    ```env
    VITE_AZURE_OPENAI_ENDPOINT=https://your-resource.openai.azure.com/
    VITE_AZURE_OPENAI_API_KEY=your-api-key-here
    VITE_AZURE_OPENAI_DEPLOYMENT_NAME=gpt-4o
    VITE_AZURE_OPENAI_API_VERSION=2024-02-15-preview
-   VITE_API_BASE_URL=/api
    ```
 
-3. **Deploy**:
-   ```bash
-   npm run build:azure
-   ```
+For detailed Azure deployment instructions, see [AZURE_DEPLOYMENT_SIMPLIFIED.md](./AZURE_DEPLOYMENT_SIMPLIFIED.md).
 
-For detailed Azure deployment instructions, see [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
+**Migration from Function App**: If you're migrating from the old Function App architecture, see [MIGRATION_TO_SIMPLIFIED.md](./MIGRATION_TO_SIMPLIFIED.md).
 
 ## Development
 
@@ -63,17 +66,14 @@ The application will automatically detect the Spark environment and use the buil
 
 To test Azure OpenAI integration locally:
 
-1. Set up Azure Function Core Tools
-2. Configure environment variables
-3. Start the API:
-   ```bash
-   cd api
-   func start
-   ```
-4. Start the frontend:
+1. Configure environment variables in `.env`
+2. Start the development server:
    ```bash
    npm run dev
    ```
+3. The app will make direct calls to Azure OpenAI from the browser
+
+## Architecture
 
 ## Architecture
 
@@ -82,10 +82,11 @@ To test Azure OpenAI integration locally:
 - Uses `useKV()` hook for data persistence
 - No backend API required
 
-### Azure Mode
-- Uses Azure OpenAI API via Azure Functions
-- Uses localStorage for data persistence
-- Requires separate API deployment
+### Azure Mode (Simplified)
+- **Direct Azure OpenAI Integration**: Frontend calls Azure OpenAI REST API directly
+- **Browser localStorage**: Local data persistence without external storage
+- **Single Azure Web App**: No Function App or Storage Account required
+- **Simplified Deployment**: One-command deployment script
 
 The application automatically detects the environment and switches between modes seamlessly.
 
@@ -95,8 +96,21 @@ The application automatically detects the environment and switches between modes
 - **UI Components**: shadcn/ui
 - **Icons**: Phosphor Icons
 - **Notifications**: Sonner
-- **Backend (Azure)**: Azure Functions, Azure OpenAI
-- **Storage**: GitHub Spark KV / localStorage
+- **Backend (Azure)**: Direct Azure OpenAI API calls
+- **Storage**: GitHub Spark KV / Browser localStorage
+
+## Benefits of Simplified Architecture
+
+### Cost Savings
+- **Eliminated**: Azure Function App (~$13-50/month)
+- **Eliminated**: Azure Storage Account (~$1-5/month)  
+- **Remaining**: Single Azure Web App (~$13/month) + Azure OpenAI usage
+
+### Operational Benefits
+- Simpler deployment and maintenance
+- Fewer moving parts and potential failure points
+- Direct browser-to-Azure OpenAI communication
+- Single deployment instead of coordinating multiple services
 
 ## Contributing
 
