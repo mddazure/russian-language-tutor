@@ -38,3 +38,5 @@ spark.meta.json
 
 .spark-workbench-id
 .spark-initial-sha
+
+.github_pat.txt

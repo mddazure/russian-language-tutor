@@ -13,7 +13,8 @@ rm -f api-deploy.zip
 mkdir -p functions-deploy/llm
 
 # Copy function files with correct naming
-cp api/llm.js functions-deploy/llm/index.js  
+cp api/llm.js functions-deploy/llm/index.js
+cp api/llm.js functions-deploy/llm/llm.js
 cp api/function.json functions-deploy/llm/function.json
 cp host.json functions-deploy/
 cp api/package.json functions-deploy/
