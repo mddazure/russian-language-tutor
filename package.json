@@ -11,7 +11,7 @@
         "lint": "eslint .",
         "optimize": "vite optimize",
         "preview": "vite preview",
-        "deploy:azure": "npm run build:azure && cd api && npm install"
+        "deploy:azure": "npm run build:azure && ./deploy-azure-simplified.sh"
     },
     "dependencies": {
         "@github/spark": "^0.39.0",
