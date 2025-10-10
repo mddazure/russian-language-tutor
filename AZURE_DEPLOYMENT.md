@@ -47,15 +47,14 @@ az appservice plan create \
   --sku B1 \
   --is-linux
 
-# Create Function App for API
+# Create Function App for API (without storage account requirement)
 az functionapp create \
   --resource-group russian-tutor-rg \
   --consumption-plan-location eastus \
   --runtime node \
   --runtime-version 18 \
   --functions-version 4 \
-  --name russian-tutor-api \
-  --storage-account russiantutorstorage
+  --name russian-tutor-api
 
 # Create Web App for frontend
 az webapp create \
@@ -95,8 +94,11 @@ az functionapp config appsettings set \
   AZURE_OPENAI_ENDPOINT="https://russian-tutor-openai.openai.azure.com/" \
   AZURE_OPENAI_API_KEY="your-api-key-here" \
   AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o" \
-  AZURE_OPENAI_API_VERSION="2024-02-15-preview"
+  AZURE_OPENAI_API_VERSION="2024-02-15-preview" \
+  AzureWebJobsStorage__accountName=""
 ```
+
+**Note**: The Function App is configured to run without requiring Azure Storage Account access by using `AzureWebJobsStorage__accountName=""` instead of a full connection string.
 
 ### Configure Web App settings
 

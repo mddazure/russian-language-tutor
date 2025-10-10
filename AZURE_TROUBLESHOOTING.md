@@ -193,7 +193,34 @@ The web.config includes security headers:
 - `X-XSS-Protection: 1; mode=block`
 - `Referrer-Policy: strict-origin-when-cross-origin`
 
-## Manual Deployment Steps
+### Issue: Function App Storage Account Requirements
+
+**Problem:**
+Function Apps typically require an Azure Storage Account for state management, but your deployment scenario doesn't allow storage account access with storage keys.
+
+**Solution:**
+The Function App is configured to run without requiring Azure Storage Account access:
+
+1. **Configuration Changes Made:**
+   - `host.json`: Updated to use extension bundle version 4.x which supports storage-less deployment
+   - `local.settings.json`: Uses `AzureWebJobsStorage__accountName=""` instead of connection string
+   - Function App created without `--storage-account` parameter
+
+2. **Environment Variable Setup:**
+   ```bash
+   az functionapp config appsettings set \
+     --name russian-tutor-api \
+     --resource-group russian-tutor-rg \
+     --settings \
+     AzureWebJobsStorage__accountName=""
+   ```
+
+3. **Limitations:**
+   - Function app will have limited state persistence capabilities
+   - Some advanced Azure Functions features that depend on storage may not be available
+   - For this LLM API use case, these limitations don't affect functionality
+
+**Manual Deployment Steps**
 
 If automatic deployment fails:
 
