@@ -1,12 +1,14 @@
 {
   "IsEncrypted": false,
   "Values": {
-    "AzureWebJobsStorage": "",
+    "AzureWebJobsStorage__accountName": "",
     "FUNCTIONS_WORKER_RUNTIME": "node",
     "AZURE_OPENAI_ENDPOINT": "",
     "AZURE_OPENAI_API_KEY": "",
     "AZURE_OPENAI_DEPLOYMENT_NAME": "gpt-4o",
-    "AZURE_OPENAI_API_VERSION": "2024-02-15-preview"
+    "AZURE_OPENAI_API_VERSION": "2024-02-15-preview",
+    "FUNCTIONS_EXTENSION_VERSION": "~4",
+    "WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED": "0"
   },
   "Host": {
     "CORS": "*"
