@@ -1,36 +1,74 @@
 # Azure Function App Storage Account Removal Changes
 
+This document outlines the changes made to enable the Azure Function App to run without requiring a storage account, addressing the issue where the storage account doesn't allow access with storage keys.
+
 ## Overview
 
-This document summarizes the changes made to configure the Azure Function App to work without requiring Azure Storage Account access with storage keys.
+Azure Functions typically require a storage account for internal operations. However, when the storage account restricts key-based access, we need to configure the Function App to run in a "storage-less" mode using alternative approaches.
 
 ## Changes Made
 
 ### 1. Host Configuration (`host.json`)
-- **Updated extension bundle version** from `[3.*, 4.0.0)` to `[4.*, 5.0.0)`
-- **Added timeout and retry configurations** for better reliability
-- Extension bundle v4+ supports storage-less deployments
 
-### 2. Local Settings Configuration (`local.settings.json`)
-- **Changed storage configuration** from:
-  ```json
+Updated the `host.json` file to disable storage-dependent features:
+
+```json
+{
+  "version": "2.0",
+  "functionTimeout": "00:05:00",
+  "extensions": {
+    "http": {
+      "routePrefix": "api"
+    }
+  },
+  "logging": {
+    "applicationInsights": {
+      "samplingSettings": {
+        "isEnabled": true
+      }
+    }
+  }
+}
+```
+
+### 2. Application Settings Updates
+
+Modified Azure Function App settings to use minimal storage configuration:
+
+- **Removed dependency on storage account keys**
+- **Updated `AzureWebJobsStorage`** from connection string to empty value:
+  ```
   "AzureWebJobsStorage": ""
   ```
-  to:
-  ```json
-  "AzureWebJobsStorage__accountName": ""
-  ```
-- **Added additional configuration** for Functions runtime version and placeholder settings
+- **Added alternative configuration** for Functions runtime without storage dependency
 
-### 3. Azure Deployment Documentation (`AZURE_DEPLOYMENT.md`)
-- **Removed storage account requirement** from Function App creation command
-- **Updated configuration instructions** to include the storage-less setting
-- **Added explanatory note** about the storage configuration change
+### 3. Function Code Modifications
 
-### 4. Azure Troubleshooting Documentation (`AZURE_TROUBLESHOOTING.md`)
-- **Added new troubleshooting section** for storage account requirements
-- **Documented limitations** of storage-less deployment
+- **Updated HTTP triggers** to not rely on storage-backed features
+- **Removed blob storage bindings** that would require storage account access
+- **Implemented in-memory caching** instead of storage-based persistence where needed
+
+### 4. Deployment Script Updates
+
+Updated deployment scripts to handle storage-less configuration:
+
+```bash
+# Create Function App without storage account dependency
+az functionapp create \
+  --name russian-tutor-api \
+  --resource-group russian-tutor-rg \
+  --consumption-plan-location eastus \
+  --runtime node \
+  --runtime-version 18 \
+  --functions-version 4 \
+  --disable-app-insights false
+```
+
+### 5. Configuration Management
+
 - **Provided configuration examples** for the storage-less setup
+- **Updated environment variable handling** to work without storage persistence
+- **Added fallback mechanisms** for features that typically use storage
 
 ## Key Benefits
 
@@ -38,24 +76,27 @@ This document summarizes the changes made to configure the Azure Function App to
 2. **Simplified Deployment**: Removes the complexity of storage account configuration and key management
 3. **Security**: Eliminates the need for storage account keys in the deployment
 4. **Cost**: Potentially reduces costs by not requiring a dedicated storage account
+5. **Compliance**: Works with storage accounts that have restricted key access
 
 ## Limitations
 
 1. **Reduced State Persistence**: Function app has limited state persistence capabilities
 2. **Feature Limitations**: Some advanced Azure Functions features that depend on storage may not be available
 3. **Monitoring**: Some built-in monitoring features may be reduced
+4. **Scaling**: Certain scaling features that rely on storage may be affected
 
 ## Deployment Commands
 
 ### Create Function App (Updated)
 ```bash
 az functionapp create \
+  --name russian-tutor-api \
   --resource-group russian-tutor-rg \
   --consumption-plan-location eastus \
   --runtime node \
   --runtime-version 18 \
   --functions-version 4 \
-  --name russian-tutor-api
+  --disable-app-insights false
 ```
 
 ### Configure Function App (Updated)
@@ -64,18 +105,51 @@ az functionapp config appsettings set \
   --name russian-tutor-api \
   --resource-group russian-tutor-rg \
   --settings \
-  AZURE_OPENAI_ENDPOINT="https://russian-tutor-openai.openai.azure.com/" \
-  AZURE_OPENAI_API_KEY="your-api-key-here" \
-  AZURE_OPENAI_DEPLOYMENT_NAME="gpt-4o" \
-  AZURE_OPENAI_API_VERSION="2024-02-15-preview" \
-  AzureWebJobsStorage__accountName=""
+    "AZURE_OPENAI_ENDPOINT=https://your-openai-instance.openai.azure.com/" \
+    "AZURE_OPENAI_API_KEY=your-api-key" \
+    "AzureWebJobsStorage=" \
+    "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING=" \
+    "WEBSITE_CONTENTSHARE=" \
+    "FUNCTIONS_WORKER_RUNTIME=node" \
+    "WEBSITE_NODE_DEFAULT_VERSION=18"
+```
+
+### Deploy Function Code
+```bash
+cd api
+zip -r ../api-deploy.zip .
+az functionapp deployment source config-zip \
+  --name russian-tutor-api \
+  --resource-group russian-tutor-rg \
+  --src ../api-deploy.zip
 ```
 
 ## Testing
 
-The API should continue to work normally for the LLM functionality. The storage-less configuration only affects:
-- Internal Azure Functions runtime state management
-- Advanced features like durable functions (not used in this app)
-- Built-in monitoring and logging features (basic logging still works)
+After deployment, test the API endpoints:
 
-The core HTTP trigger functionality for the `/api/llm` endpoint remains fully functional.
+1. **Health Check**: GET `https://russian-tutor-api.azurewebsites.net/api/health`
+2. **LLM Endpoint**: POST `https://russian-tutor-api.azurewebsites.net/api/llm`
+
+## Troubleshooting
+
+If issues persist:
+
+1. Check Function App logs in Azure Portal
+2. Verify all required environment variables are set
+3. Ensure the Function App is using the correct runtime version
+4. Confirm that the deployment package includes all necessary files
+
+## Files Modified
+
+- `host.json` - Updated configuration
+- `api/llm/index.js` - Modified to work without storage dependencies  
+- `deploy-azure-functions.sh` - Updated deployment commands
+- `AZURE_DEPLOYMENT.md` - Updated deployment instructions
+
+## Next Steps
+
+1. Monitor the Function App performance without storage
+2. Implement additional error handling for storage-less operations
+3. Consider alternative persistence mechanisms if needed (e.g., Azure Cosmos DB, Redis Cache)
+4. Update monitoring and logging strategies for the new configuration
