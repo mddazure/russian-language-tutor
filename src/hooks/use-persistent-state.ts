@@ -1,9 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 
+// Check if we're in Azure environment (no spark global)
+function isAzureEnvironment(): boolean {
+  return typeof window !== 'undefined' && !(window as any).spark
+}
 
-
-  useEffect(() => {
-      try {
+export function usePersistentState<T>(key: string, defaultValue: T) {
+  const [state, setState] = useState<T>(defaultValue)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   // Load initial value
   useEffect(() => {
@@ -12,53 +16,54 @@ import { useState, useEffect, useCallback } from 'react'
         let stored: T | undefined
 
         if (isAzureEnvironment()) {
+          // Use localStorage for Azure
+          const item = localStorage.getItem(key)
+          if (item !== null) {
+            stored = JSON.parse(item)
+          }
+        } else {
+          // Use Spark KV store
+          if ((window as any).spark?.kv) {
+            stored = await (window as any).spark.kv.get(key) as T | undefined
+          }
         }
-        console.error(`Failed to load ${key}:`, error
-        setIsLoaded(true)
-    }
-  }, [key])
-  // Set value f
-    setState(prevState => {
-      
-      if (isAzureEnvironment()) {
-        try
+
+        if (stored !== undefined) {
+          setState(stored)
         }
-        
-        // Use Spark KV store
-          (window as any).
-        }
+      } catch (error) {
+        console.error(`Failed to load ${key}:`, error)
       }
-      return newValue
-  }, [key])
-        setIsLoaded(true)
-    set
+      setIsLoaded(true)
     }
-      try {
+
+    loadValue()
   }, [key])
 
-      // Use Spark KV s
-        (window as any).spark.kv.delete(key).catch((error: any) =
+  // Set value function
+  const setValue = useCallback((newValue: T | ((prevValue: T) => T)) => {
     setState(prevState => {
-    }
+      const valueToSet = typeof newValue === 'function' 
+        ? (newValue as (prevValue: T) => T)(prevState)
+        : newValue
       
-}
       if (isAzureEnvironment()) {
-
-
-
-
-
+        // Use localStorage for Azure
+        try {
+          localStorage.setItem(key, JSON.stringify(valueToSet))
+        } catch (error) {
+          console.error(`Failed to save ${key} to localStorage:`, error)
         }
-
+      } else {
         // Use Spark KV store
-
-
-
+        if ((window as any).spark?.kv) {
+          (window as any).spark.kv.set(key, valueToSet).catch((error: any) => {
+            console.error(`Failed to save ${key} to Spark KV:`, error)
           })
         }
       }
       
-      return newValue
+      return valueToSet
     })
   }, [key])
 
