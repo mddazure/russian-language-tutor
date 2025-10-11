@@ -16,12 +16,71 @@ npm run build
 # Copy build files to wwwroot
 echo "Copying files..."
 cp -r dist/* $DEPLOYMENT_TARGET/
-cp web.config $DEPLOYMENT_TARGET/
 
-# Install API dependencies
-echo "Installing API dependencies..."
-cd api
-npm install
-cd ..
+# Copy web.config if it exists
+if [ -f "web.config" ]; then
+    echo "Copying web.config..."
+    cp web.config $DEPLOYMENT_TARGET/
+else
+    echo "Creating web.config..."
+    cat > $DEPLOYMENT_TARGET/web.config << 'EOF'
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="index.html" />
+      </files>
+    </defaultDocument>
+    
+    <rewrite>
+      <rules>
+        <rule name="Static Assets" stopProcessing="true">
+          <match url="^(assets/.*|.*\.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2|ttf|eot))$" />
+          <action type="None" />
+        </rule>
+        
+        <rule name="React Routes" stopProcessing="true">
+          <match url=".*" />
+          <conditions logicalGrouping="MatchAll">
+            <add input="{REQUEST_FILENAME}" matchType="IsFile" negate="true" />
+            <add input="{REQUEST_FILENAME}" matchType="IsDirectory" negate="true" />
+          </conditions>
+          <action type="Rewrite" url="/index.html" />
+        </rule>
+      </rules>
+    </rewrite>
+    
+    <staticContent>
+      <mimeMap fileExtension=".json" mimeType="application/json" />
+      <mimeMap fileExtension=".js" mimeType="application/javascript" />
+      <mimeMap fileExtension=".mjs" mimeType="application/javascript" />
+      <mimeMap fileExtension=".css" mimeType="text/css" />
+      <mimeMap fileExtension=".woff" mimeType="font/woff" />
+      <mimeMap fileExtension=".woff2" mimeType="font/woff2" />
+      <mimeMap fileExtension=".ttf" mimeType="font/ttf" />
+      <mimeMap fileExtension=".eot" mimeType="application/vnd.ms-fontobject" />
+      <mimeMap fileExtension=".svg" mimeType="image/svg+xml" />
+    </staticContent>
+    
+    <httpProtocol>
+      <customHeaders>
+        <add name="X-Content-Type-Options" value="nosniff" />
+        <add name="X-Frame-Options" value="DENY" />
+        <add name="X-XSS-Protection" value="1; mode=block" />
+        <add name="Referrer-Policy" value="strict-origin-when-cross-origin" />
+      </customHeaders>
+    </httpProtocol>
+    
+    <urlCompression doStaticCompression="true" doDynamicCompression="true" />
+    
+    <staticContent>
+      <clientCache cacheControlMode="UseMaxAge" cacheControlMaxAge="31536000" />
+    </staticContent>
+  </system.webServer>
+</configuration>
+EOF
+fi
 
 echo "Deployment completed successfully!"
