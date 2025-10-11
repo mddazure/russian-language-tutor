@@ -9,20 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Progress } from '@/components/ui/progress'
 import { BookOpen, Question, Translate, ArrowClockwise, CheckCircle, XCircle, Trophy, ChartBar } from '@phosphor-icons/react'
 import { toast } from 'sonner'
-import { llmService } from './services/llm'
-import { useStorage } from './services/storage'
-import { isAzureEnvironment } from './config'
-
-// Try to import useKV for Spark environment, fallback to useStorage for Azure
-let useKV: any
-try {
-  if (!isAzureEnvironment()) {
-    const sparkHooks = require('@github/spark/hooks')
-    useKV = sparkHooks.useKV
-  }
-} catch {
-  // useKV not available, will use useStorage instead
-}
+import { usePersistentState } from './hooks/use-persistent-state'
+import { useLLM } from './hooks/use-llm'
 
 interface Story {
   title: string
@@ -62,10 +50,16 @@ const LENGTHS = [
 ]
 
 function App() {
-  // Use appropriate storage hook based on environment
-  const useStorageHook = useKV || useStorage
+  const { generatePrompt, callLLM } = useLLM()
   
-  const [currentStory, setCurrentStory] = useStorageHook('current-story', null)
+  // Debug environment detection
+  console.log('App environment:', {
+    hasSparkGlobal: typeof window !== 'undefined' && !!(window as any).spark,
+    hasSparkLLM: typeof window !== 'undefined' && !!(window as any).spark?.llm,
+    hasSparkKV: typeof window !== 'undefined' && !!(window as any).spark?.kv
+  })
+  
+  const [currentStory, setCurrentStory] = usePersistentState<Story | null>('current-story', null)
   const [selectedLevel, setSelectedLevel] = useState('B1')
   const [selectedTheme, setSelectedTheme] = useState('')
   const [selectedLength, setSelectedLength] = useState('medium')
@@ -75,11 +69,17 @@ function App() {
   const [selectedAnswer, setSelectedAnswer] = useState('')
   const [showFeedback, setShowFeedback] = useState(false)
   const [questionType, setQuestionType] = useState<'comprehension' | 'grammar' | null>(null)
-  const [userAnswers, setUserAnswers] = useStorageHook('user-answers', {})
+  const [userAnswers, setUserAnswers] = usePersistentState<Record<string, string>>('user-answers', {})
 
   const [quizScore, setQuizScore] = useState<{correct: number, total: number}>({correct: 0, total: 0})
   const [showResults, setShowResults] = useState(false)
-  const [quizResults, setQuizResults] = useStorageHook('quiz-results', [])
+  const [quizResults, setQuizResults] = usePersistentState<Array<{
+    question: string;
+    userAnswer: string;
+    correctAnswer: string;
+    isCorrect: boolean;
+    explanation: string;
+  }>>('quiz-results', [])
 
   const generateStory = async () => {
     if (!selectedTheme) {
@@ -87,9 +87,10 @@ function App() {
       return
     }
 
+    console.log('Starting story generation...')
     setIsGenerating(true)
     try {
-      const prompt = llmService.llmPrompt`Generate a Russian short story with the following specifications:
+      const prompt = generatePrompt`Generate a Russian short story with the following specifications:
       - Theme: ${selectedTheme}
       - CEFR Level: ${selectedLevel}
       - Length: ${selectedLength}
@@ -107,7 +108,10 @@ function App() {
         "content": "Full story content in Russian"
       }`
 
-      const response = await llmService.llm(prompt, 'gpt-4o', true)
+      console.log('Generated prompt:', prompt)
+      const response = await callLLM(prompt, 'gpt-4o', true)
+      console.log('LLM response:', response)
+      
       const storyData = JSON.parse(response)
       
       const newStory: Story = {
@@ -118,14 +122,15 @@ function App() {
         length: selectedLength
       }
       
+      console.log('Setting new story:', newStory)
       setCurrentStory(newStory)
       setQuestions([])
       setQuestionType(null)
       setCurrentQuestionIndex(0)
       toast.success('Story generated successfully!')
     } catch (error) {
-      toast.error('Failed to generate story. Please try again.')
-      console.error(error)
+      console.error('Story generation failed:', error)
+      toast.error(`Failed to generate story: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsGenerating(false)
     }
@@ -141,7 +146,7 @@ function App() {
     setShowResults(false)
     
     try {
-      const prompt = llmService.llmPrompt`Based on this Russian story, generate exactly 5 ${type} questions.
+      const prompt = generatePrompt`Based on this Russian story, generate exactly 5 ${type} questions.
 
 Story: ${currentStory.content}
 Level: ${currentStory.level}
@@ -180,7 +185,7 @@ Example format:
 
 Return ONLY the JSON object, no other text:`
 
-      const response = await llmService.llm(prompt, 'gpt-4o', true)
+      const response = await callLLM(prompt, 'gpt-4o', true)
       
       // Parse the response directly since it's JSON mode
       const parsedResponse = JSON.parse(response)

@@ -60,7 +60,15 @@ const localStorageService: StorageService = {
 }
 
 // Export the appropriate service based on environment
-export const storageService: StorageService = isAzureEnvironment() ? localStorageService : sparkStorageService
+export const storageService: StorageService = (() => {
+  const isAzure = isAzureEnvironment()
+  console.log('Storage service detection:', {
+    isAzure,
+    hasSparkGlobal: typeof window !== 'undefined' && !!(window as any).spark,
+    hasSparkKV: typeof window !== 'undefined' && !!(window as any).spark?.kv
+  })
+  return isAzure ? localStorageService : sparkStorageService
+})()
 
 // Custom hook that works like useKV but with fallback to localStorage
 export function useStorage<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void, () => void] {
@@ -85,24 +93,23 @@ export function useStorage<T>(key: string, defaultValue: T): [T, (value: T | ((p
   }, [key])
 
   // Set value function
-  const setValue = useCallback(async (value: T | ((prev: T) => T)) => {
-    const newValue = typeof value === 'function' ? (value as (prev: T) => T)(state) : value
-    setState(newValue)
-    try {
-      await storageService.set(key, newValue)
-    } catch (error) {
-      console.error(`Failed to store ${key}:`, error)
-    }
-  }, [key, state])
+  const setValue = useCallback((value: T | ((prev: T) => T)) => {
+    setState(prevState => {
+      const newValue = typeof value === 'function' ? (value as (prev: T) => T)(prevState) : value
+      // Store asynchronously but don't wait
+      storageService.set(key, newValue).catch(error => {
+        console.error(`Failed to store ${key}:`, error)
+      })
+      return newValue
+    })
+  }, [key])
 
   // Delete value function
-  const deleteValue = useCallback(async () => {
+  const deleteValue = useCallback(() => {
     setState(defaultValue)
-    try {
-      await storageService.delete(key)
-    } catch (error) {
+    storageService.delete(key).catch(error => {
       console.error(`Failed to delete ${key}:`, error)
-    }
+    })
   }, [key, defaultValue])
 
   // Return default value until loaded

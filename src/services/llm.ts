@@ -94,4 +94,12 @@ const azureLLMService: LLMService = {
 }
 
 // Export the appropriate service based on environment
-export const llmService: LLMService = isAzureEnvironment() ? azureLLMService : sparkLLMService
+export const llmService: LLMService = (() => {
+  const isAzure = isAzureEnvironment()
+  console.log('Environment detection:', {
+    isAzure,
+    hasSparkGlobal: typeof window !== 'undefined' && !!(window as any).spark,
+    azureConfig: isAzure ? config.azure : 'N/A'
+  })
+  return isAzure ? azureLLMService : sparkLLMService
+})()
