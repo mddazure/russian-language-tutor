@@ -4,24 +4,26 @@ import { isAzureEnvironment } from '@/config'
 // Unified hook that works in both Spark and Azure environments
 export function usePersistentState<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void, () => void] {
   const [state, setState] = useState<T>(defaultValue)
+  const [isLoaded, setIsLoaded] = useState(false)
+
+  // Load initial value
+  useEffect(() => {
+    const loadValue = async () => {
+      try {
         let stored: T | undefined
 
-          const item = 
+        if (isAzureEnvironment()) {
+          // Use localStorage for Azure
+          const item = localStorage.getItem(key)
+          if (item !== null) {
+            stored = JSON.parse(item)
+          }
         } else {
-          const spark = (window as 
-           
-        let stored: T | undefined
-        
-        }
-        console.error(`Failed to load $
-        setIsLoaded(true)
-    }
-        } else {
-  // Set value function
-    setState(prevState => {
-      
-      if (isAzureEnvironment()) {
-        try
+          // Use Spark KV for Spark environment
+          const spark = (window as any).spark
+          if (spark?.kv) {
+            stored = await spark.kv.get(key) as T | undefined
+          }
         }
         
         if (stored !== undefined) {
@@ -46,40 +48,44 @@ export function usePersistentState<T>(key: string, defaultValue: T): [T, (value:
         // Use localStorage for Azure
         try {
           localStorage.setItem(key, JSON.stringify(newValue))
+        } catch (error) {
+          console.error(`Failed to save ${key}:`, error)
+        }
+      } else {
+        // Use Spark KV for Spark environment
+        const spark = (window as any).spark
+        if (spark?.kv) {
+          spark.kv.set(key, newValue).catch((error: any) => {
+            console.error(`Failed to save ${key}:`, error)
+          })
+        }
+      }
+      
+      return newValue
+    })
+  }, [key])
 
+  // Delete value function
+  const deleteValue = useCallback(() => {
+    setState(defaultValue)
+    
+    if (isAzureEnvironment()) {
+      // Use localStorage for Azure
+      try {
+        localStorage.removeItem(key)
+      } catch (error) {
+        console.error(`Failed to delete ${key}:`, error)
+      }
+    } else {
+      // Use Spark KV for Spark environment
+      const spark = (window as any).spark
+      if (spark?.kv) {
+        spark.kv.delete(key).catch((error: any) => {
+          console.error(`Failed to delete ${key}:`, error)
+        })
+      }
+    }
+  }, [key, defaultValue])
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+  return [state, setValue, deleteValue]
+}
