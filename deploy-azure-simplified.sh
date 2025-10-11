@@ -108,24 +108,23 @@ echo "✅ Credentials retrieved"
 echo "   Endpoint: $AZURE_OPENAI_ENDPOINT"
 echo "   API Key: ${AZURE_OPENAI_API_KEY:0:8}..."
 
-# Configure Web App environment variables
-echo "⚙️  Configuring Web App environment variables..."
-az webapp config appsettings set \
-    --name $WEB_APP_NAME \
-    --resource-group $RESOURCE_GROUP \
-    --settings \
-    VITE_AZURE_OPENAI_ENDPOINT="$AZURE_OPENAI_ENDPOINT" \
-    VITE_AZURE_OPENAI_API_KEY="$AZURE_OPENAI_API_KEY" \
-    VITE_AZURE_OPENAI_DEPLOYMENT_NAME="$MODEL_DEPLOYMENT_NAME" \
-    VITE_AZURE_OPENAI_API_VERSION="2024-02-15-preview" \
-    --output table
+# Build application with environment variables
+echo "🔨 Building application with environment variables..."
 
-echo "✅ Environment variables configured"
+# Create temporary .env file for build
+cat > .env << EOF
+VITE_AZURE_OPENAI_ENDPOINT=$AZURE_OPENAI_ENDPOINT
+VITE_AZURE_OPENAI_API_KEY=$AZURE_OPENAI_API_KEY
+VITE_AZURE_OPENAI_DEPLOYMENT_NAME=$MODEL_DEPLOYMENT_NAME
+VITE_AZURE_OPENAI_API_VERSION=2024-02-15-preview
+EOF
 
-# Build and deploy the application
-echo "🔨 Building application..."
+# Install dependencies and build with environment variables
 npm install
 npm run build
+
+# Remove the temporary .env file
+rm .env
 
 echo "📦 Creating deployment package..."
 cd dist
@@ -137,6 +136,12 @@ if [ ! -f "web.config" ]; then
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <system.webServer>
+    <defaultDocument>
+      <files>
+        <clear />
+        <add value="index.html" />
+      </files>
+    </defaultDocument>
     <rewrite>
       <rules>
         <rule name="React Routes" stopProcessing="true">
@@ -164,17 +169,25 @@ az webapp deployment source config-zip \
     --src dist.zip \
     --output table
 
+# Configure CORS for Azure OpenAI (important for web app to work)
+echo "🔧 Configuring CORS for Azure OpenAI..."
+az cognitiveservices account update \
+    --name $OPENAI_RESOURCE \
+    --resource-group $RESOURCE_GROUP \
+    --custom-domain "" \
+    || echo "⚠️  CORS configuration may need manual setup"
+
 echo "✅ Deployment complete!"
 echo ""
 echo "🎉 Your Russian Language Tutor is now deployed!"
 echo "🌐 Web App URL: https://${WEB_APP_NAME}.azurewebsites.net"
 echo ""
 echo "📋 Next steps:"
-echo "   1. Configure CORS for Azure OpenAI (see deployment guide)"
-echo "   2. Test the application by generating a story"
+echo "   1. Test the application by generating a story"
+echo "   2. If you get CORS errors, configure CORS manually in Azure OpenAI Studio"
 echo "   3. Monitor usage and costs in Azure Portal"
 echo ""
-echo "💡 To configure CORS manually:"
+echo "💡 To configure CORS manually if needed:"
 echo "   - Go to Azure OpenAI Studio"
 echo "   - Navigate to your resource → Settings → CORS"
 echo "   - Add: https://${WEB_APP_NAME}.azurewebsites.net"

@@ -146,6 +146,46 @@ az webapp deployment source config-zip \
 
 ## Troubleshooting
 
+### Issue: Generate Story Button Not Working
+
+**Problem**: The button works in Spark but not in Azure Web App deployment.
+
+**Root Cause**: Environment variables are not available during build time in Azure.
+
+**Solutions**:
+
+1. **Use the Updated Deployment Script** (Recommended):
+   ```bash
+   ./deploy-azure-simplified.sh
+   ```
+   This script now builds the app with environment variables before deployment.
+
+2. **Manual Build with Environment Variables**:
+   ```bash
+   # Ensure .env.azure has correct values
+   ./build-for-azure.sh
+   
+   # Then deploy the generated dist.zip
+   az webapp deployment source config-zip \
+     --resource-group russian-tutor-rg \
+     --name russian-tutor-app \
+     --src dist.zip
+   ```
+
+3. **Verify Build Configuration**:
+   - Environment variables must be present during `npm run build`
+   - Check browser console for configuration errors
+   - Use the troubleshooting script: `./troubleshoot-azure-deployment.sh`
+
+4. **Debug Steps**:
+   ```bash
+   # Check if environment variables are built into the app
+   unzip -p dist.zip assets/index-*.js | grep -o "VITE_AZURE_OPENAI" || echo "Variables not found in build"
+   
+   # Test the deployed app
+   curl https://your-app-name.azurewebsites.net
+   ```
+
 ### Issue: Web App Shows Default App Service Page
 
 **Problem**: The application isn't loading index.html properly.

@@ -11,6 +11,7 @@ import { BookOpen, Question, Translate, ArrowClockwise, CheckCircle, XCircle, Tr
 import { toast } from 'sonner'
 import { usePersistentState } from './hooks/use-persistent-state'
 import { useLLM } from './hooks/use-llm'
+import { debugConfig } from '@/config'
 
 interface Story {
   title: string
@@ -59,6 +60,9 @@ function App() {
     hasSparkKV: typeof window !== 'undefined' && !!(window as any).spark?.kv
   })
   
+  // Additional debug info for Azure deployment
+  debugConfig()
+  
   const [currentStory, setCurrentStory] = usePersistentState<Story | null>('current-story', null)
   const [selectedLevel, setSelectedLevel] = useState('B1')
   const [selectedTheme, setSelectedTheme] = useState('')
@@ -88,6 +92,7 @@ function App() {
     }
 
     console.log('Starting story generation...')
+    debugConfig() // Debug configuration on story generation
     setIsGenerating(true)
     try {
       const prompt = generatePrompt`Generate a Russian short story with the following specifications:

@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { isAzureEnvironment } from '@/config'
 
-// Unified hook that works in both Spark and Azure environments
-export function usePersistentState<T>(key: string, defaultValue: T): [T, (value: T | ((prev: T) => T)) => void, () => void] {
+export function usePersistentState<T>(key: string, defaultValue: T) {
   const [state, setState] = useState<T>(defaultValue)
   const [isLoaded, setIsLoaded] = useState(false)
 
@@ -14,15 +13,14 @@ export function usePersistentState<T>(key: string, defaultValue: T): [T, (value:
 
         if (isAzureEnvironment()) {
           // Use localStorage for Azure
-          const item = localStorage.getItem(key)
-          if (item !== null) {
-            stored = JSON.parse(item)
+          const localData = localStorage.getItem(key)
+          if (localData) {
+            stored = JSON.parse(localData)
           }
         } else {
-          // Use Spark KV for Spark environment
-          const spark = (window as any).spark
-          if (spark?.kv) {
-            stored = await spark.kv.get(key) as T | undefined
+          // Use Spark KV store
+          if ((window as any).spark?.kv) {
+            stored = await (window as any).spark.kv.get(key)
           }
         }
         
@@ -49,14 +47,13 @@ export function usePersistentState<T>(key: string, defaultValue: T): [T, (value:
         try {
           localStorage.setItem(key, JSON.stringify(newValue))
         } catch (error) {
-          console.error(`Failed to save ${key}:`, error)
+          console.error(`Failed to save ${key} to localStorage:`, error)
         }
       } else {
-        // Use Spark KV for Spark environment
-        const spark = (window as any).spark
-        if (spark?.kv) {
-          spark.kv.set(key, newValue).catch((error: any) => {
-            console.error(`Failed to save ${key}:`, error)
+        // Use Spark KV store
+        if ((window as any).spark?.kv) {
+          (window as any).spark.kv.set(key, newValue).catch((error: any) => {
+            console.error(`Failed to save ${key} to Spark KV:`, error)
           })
         }
       }
@@ -74,18 +71,17 @@ export function usePersistentState<T>(key: string, defaultValue: T): [T, (value:
       try {
         localStorage.removeItem(key)
       } catch (error) {
-        console.error(`Failed to delete ${key}:`, error)
+        console.error(`Failed to delete ${key} from localStorage:`, error)
       }
     } else {
-      // Use Spark KV for Spark environment
-      const spark = (window as any).spark
-      if (spark?.kv) {
-        spark.kv.delete(key).catch((error: any) => {
-          console.error(`Failed to delete ${key}:`, error)
+      // Use Spark KV store
+      if ((window as any).spark?.kv) {
+        (window as any).spark.kv.delete(key).catch((error: any) => {
+          console.error(`Failed to delete ${key} from Spark KV:`, error)
         })
       }
     }
   }, [key, defaultValue])
 
-  return [state, setValue, deleteValue]
+  return [state, setValue, deleteValue, isLoaded] as const
 }
