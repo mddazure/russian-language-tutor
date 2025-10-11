@@ -1,7 +1,8 @@
 // Configuration for different deployment environments
 export const config = {
   // Detect if we're running in Azure Web App or Spark environment
-  isAzureDeployment: typeof window !== 'undefined' && !window.spark,
+  // In Spark, the global spark object is available; in Azure it's not
+  isAzureDeployment: typeof window !== 'undefined' && !(window as any).spark,
   
   // Azure OpenAI configuration (will be set via environment variables)
   azure: {
@@ -12,4 +13,8 @@ export const config = {
   }
 }
 
-export const isAzureEnvironment = () => config.isAzureDeployment
+export const isAzureEnvironment = () => {
+  // Check at runtime since window might not be available during SSR
+  if (typeof window === 'undefined') return false
+  return !(window as any).spark
+}

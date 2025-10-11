@@ -46,7 +46,35 @@ For production deployment, you can deploy this as an Azure Web App with Azure Op
    npm run build:azure
    ```
 
-For detailed Azure deployment instructions, see [AZURE_DEPLOYMENT.md](./AZURE_DEPLOYMENT.md).
+For detailed Azure deployment instructions, see [AZURE_DEPLOYMENT_SIMPLIFIED.md](./AZURE_DEPLOYMENT_SIMPLIFIED.md).
+
+#### Quick Deploy to Azure
+
+```bash
+# Automated deployment
+./deploy-azure-simplified.sh
+
+# Or manual steps
+npm run build
+./verify-build.sh          # Verify build is correct
+./troubleshoot-deployment.sh # Diagnose issues if needed
+```
+
+### Troubleshooting Azure Deployment
+
+If your Azure Web App shows the default App Service page instead of your application:
+
+1. **Verify Build**: Run `./verify-build.sh` to ensure build is correct
+2. **Check Deployment**: Run `./troubleshoot-deployment.sh` for detailed diagnostics
+3. **Manual Verification**: Check Azure Portal > Web App > Advanced Tools > Kudu Console
+   - Navigate to `/home/site/wwwroot`
+   - Ensure `index.html`, `assets/`, and `web.config` exist
+
+Common issues:
+- Missing `web.config` file
+- Environment variables not set during build
+- Files not deployed to correct directory
+- CORS not configured for Azure OpenAI
 
 ## Development
 
